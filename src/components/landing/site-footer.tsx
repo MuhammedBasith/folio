@@ -32,7 +32,10 @@ const COLUMNS = [
     heading: "Get started",
     links: [
       { label: "Open the demo", href: "/login" },
-      { label: "Create an account", href: "/signup" },
+      // "Create account", not "Create an account": the columns are a third of a
+      // phone wide, and the article is the one word that pushes this onto a
+      // second line. It is also what the button on the signup form says.
+      { label: "Create account", href: "/signup" },
       { label: "Sign in", href: "/login" },
     ],
   },
@@ -86,7 +89,7 @@ export function SiteFooter() {
 
       <div className="relative">
         {/* ---- Closing statement ---- */}
-        <div className="mx-auto w-full max-w-content px-5 py-24 text-center md:px-8 md:py-32">
+        <div className="mx-auto w-full max-w-content px-5 py-20 text-center md:px-8 md:py-32">
           <Reveal>
             <h2 className="mx-auto max-w-[16ch] font-heading text-display-hero text-balance text-ink">
               Stop guessing who has paid.
@@ -101,8 +104,27 @@ export function SiteFooter() {
 
         {/* ---- Links ---- */}
         <div className="mx-auto w-full max-w-content px-5 pb-12 md:px-8">
-          <div className="grid gap-10 pt-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-            <div>
+          {/*
+            THE LINK GROUPS SIT SIDE BY SIDE ON A PHONE.
+
+            One column meant four stacked blocks, and a footer of seven links
+            was taller than the section above it. The groups are three, five and
+            one line long; standing them next to each other costs the height of
+            the tallest instead of the sum of all three, and the headings stop
+            reading as sections of a document.
+
+            The brand block keeps the full row because its sentence needs the
+            measure, so the phone layout is two rows rather than four.
+
+            THE THIRD COLUMN ONLY APPEARS AT 390px. Below that a third is 83px,
+            and every label longer than "How it works" breaks onto two lines: a
+            grid of ragged two-line links is worse than the stack it replaced.
+            390 is measured rather than chosen, it is the width at which the
+            longest label ("Exact arithmetic", 98px) clears a column with room
+            to spare.
+          */}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-9 pt-4 min-[390px]:grid-cols-3 sm:gap-x-8 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] lg:gap-10">
+            <div className="col-span-2 min-[390px]:col-span-3 lg:col-span-1">
               <Link
                 href="/"
                 className="inline-flex min-h-8 items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
@@ -134,7 +156,7 @@ export function SiteFooter() {
             ))}
           </div>
 
-          <div className="mt-14 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-12 flex flex-col gap-1.5 sm:mt-14 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-caption text-ink-faint">
               Folio <span className="tabular-nums">© 2026</span>
             </p>
