@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiClientError, api } from "@/lib/api-client";
 import { formatCents, formatMoney, parseAmountToCents } from "@/lib/money";
+import { todayLocalIso } from "@/lib/format";
 
 /**
  * Record a payment.
@@ -41,9 +42,7 @@ export function RecordPaymentDialog({
 
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState("");
-  const [paidOn, setPaidOn] = useState(() =>
-    new Date().toISOString().slice(0, 10),
-  );
+  const [paidOn, setPaidOn] = useState(todayLocalIso);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [maxCents, setMaxCents] = useState(dueCents);
@@ -51,17 +50,31 @@ export function RecordPaymentDialog({
 
   const busy = submitting || isPending;
 
-  function reset() {
-    setAmount("");
-    setNote("");
-    setError(null);
-    setMaxCents(dueCents);
-    setPaidOn(new Date().toISOString().slice(0, 10));
-  }
-
+  /**
+   * Reset on OPEN, not on close.
+   *
+   * Two bugs lived here. Resetting on close re-seeded `maxCents` from a
+   * `dueCents` prop that was still the pre-refresh value, so reopening the
+   * dialog after a payment offered a maximum that had already been collected.
+   * And `submitting` was never cleared on the success path at all, so after one
+   * successful payment the button read "Recording" and stayed disabled for the
+   * life of the page.
+   *
+   * Seeding on open fixes both: the prop is current by then, and every field
+   * including `submitting` starts from a known state each time.
+   */
   function handleOpenChange(next: boolean) {
     setOpen(next);
-    if (!next) reset();
+
+    if (next) {
+      setAmount("");
+      setNote("");
+      setError(null);
+      setMaxCents(dueCents);
+      setPaidOn(todayLocalIso());
+    }
+
+    setSubmitting(false);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -94,7 +107,7 @@ export function RecordPaymentDialog({
       });
 
       setOpen(false);
-      reset();
+      setSubmitting(false);
 
       startTransition(() => {
         router.refresh();
