@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiClientError, api } from "@/lib/api-client";
 import { formatMoney, parseAmountToCents } from "@/lib/money";
+import { localIsoInDays, todayLocalIso } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
@@ -39,15 +40,14 @@ function emptyLine(): DraftLine {
   };
 }
 
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function defaultDueDate(): string {
-  const date = new Date();
-  date.setUTCDate(date.getUTCDate() + 14);
-  return date.toISOString().slice(0, 10);
-}
+/**
+ * Defaults come from the user's own calendar, not UTC.
+ *
+ * A UTC minimum blocks the user's local today for anyone west of Greenwich in
+ * the evening: their calendar says the 8th, the input refuses anything before
+ * the 9th.
+ */
+const defaultDueDate = () => localIsoInDays(14);
 
 export function OrderForm() {
   const router = useRouter();
@@ -90,14 +90,32 @@ export function OrderForm() {
     );
   }
 
+  /**
+   * Adding or removing a line clears the line errors.
+   *
+   * They are keyed by array index (`lines.2.quantity`), which the server's own
+   * paths force. Remove line 1 and every error after it now points at a
+   * different, valid row: the user sees "at least 1" under a field reading 3.
+   * Clearing is honest, and submitting re-derives them against the new shape.
+   */
+  function clearLineErrors() {
+    setErrors((current) =>
+      Object.fromEntries(
+        Object.entries(current).filter(([key]) => !key.startsWith("lines.")),
+      ),
+    );
+  }
+
   function addLine() {
     setLines((current) => [...current, emptyLine()]);
+    clearLineErrors();
   }
 
   function removeLine(key: string) {
     setLines((current) =>
       current.length === 1 ? current : current.filter((l) => l.key !== key),
     );
+    clearLineErrors();
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -202,7 +220,7 @@ export function OrderForm() {
               id="dueDate"
               type="date"
               value={dueDate}
-              min={todayIso()}
+              min={todayLocalIso()}
               onChange={(e) => setDueDate(e.target.value)}
               aria-invalid={errors.dueDate ? true : undefined}
             />
@@ -210,12 +228,14 @@ export function OrderForm() {
         </div>
 
         <div className="mt-4">
-          <Labelled label="Notes" name="notes" optional>
+          <Labelled label="Notes" name="notes" optional error={errors.notes}>
             <Input
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Anything worth remembering about this order"
+              maxLength={1000}
+              aria-invalid={errors.notes ? true : undefined}
             />
           </Labelled>
         </div>
