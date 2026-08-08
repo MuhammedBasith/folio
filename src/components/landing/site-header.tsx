@@ -198,8 +198,23 @@ export function SiteHeader() {
  * Two bars that become an X.
  *
  * Both are the same width when open, and the lower one is shorter when closed,
- * which reads as a menu without needing a third bar. Transform only, so nothing
- * around it can move.
+ * which reads as a menu without needing a third bar. Two equal bars read as an
+ * equals sign; the short one under the long one is what makes the pair say
+ * "list", and it is the difference between the closed state having a meaning
+ * and merely having a shape.
+ *
+ * `scale-x`, NOT `width`. Width is a layout property, so animating it would put
+ * this button on the browser's layout path every frame while it sits inside a
+ * header that is itself mid-transition. A scale composites and it composes with
+ * the rotation and the shift already on these elements, so all three arrive as
+ * one movement rather than as a queue.
+ *
+ * The origin stays centred, which is a constraint rather than a preference. It
+ * governs the rotation as well as the scale, and rotating a bar about its left
+ * end swings the far end through a quarter circle instead of pivoting in place,
+ * so the X assembles from two arcs. Shifting the origin only while closed would
+ * fix that and introduce a worse problem: `transform-origin` would then flip at
+ * the moment the transition starts, and both bars would jump before they moved.
  */
 function MenuButton({
   open,
@@ -225,8 +240,8 @@ function MenuButton({
       />
       <span
         className={cn(
-          "block h-px w-4 rounded-full bg-ink transition-transform duration-280 ease-out-quint",
-          open && "-translate-y-[3.5px] -rotate-45",
+          "block h-px w-4 origin-center rounded-full bg-ink transition-transform duration-280 ease-out-quint",
+          open ? "-translate-y-[3.5px] -rotate-45" : "scale-x-75",
         )}
       />
     </button>
