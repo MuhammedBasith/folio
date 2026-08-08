@@ -2,21 +2,26 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+/**
+ * Font variables are named after the typeface, not the role. `theme.css` maps
+ * them onto the roles (`--font-sans`, `--font-heading`). Naming them by role
+ * here would make the theme mapping self-referential.
+ */
 const inter = Inter({
-  variable: "--font-sans",
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap",
 });
 
 const instrumentSerif = Instrument_Serif({
-  variable: "--font-heading",
+  variable: "--font-instrument-serif",
   subsets: ["latin"],
   weight: "400",
   display: "swap",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-mono",
+  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
 });
