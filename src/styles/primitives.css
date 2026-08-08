@@ -1,0 +1,72 @@
+/**
+ * Tier 1: primitives.
+ *
+ * Raw, meaningless values. Nothing in the app may reference these directly.
+ * They exist only so the semantic layer in `tokens.css` has a vocabulary to
+ * point at. If you find yourself writing `var(--n-300)` in a component, the
+ * semantic layer is missing a token.
+ *
+ * Neutrals carry a whisper of warmth (hue 75, chroma <= 0.006) so white reads
+ * as paper rather than as a lit screen. It is below the threshold of conscious
+ * notice, which is the point.
+ */
+
+:root {
+  /* Neutral ramp ------------------------------------------------------- */
+  --n-0: oklch(1 0 0);
+  --n-25: oklch(0.992 0.002 75);
+  --n-50: oklch(0.982 0.003 75);
+  --n-100: oklch(0.968 0.003 75);
+  --n-150: oklch(0.949 0.004 75);
+  --n-200: oklch(0.925 0.004 75);
+  --n-300: oklch(0.878 0.004 75);
+  --n-400: oklch(0.708 0.006 75);
+  --n-500: oklch(0.582 0.006 75);
+  --n-600: oklch(0.487 0.006 75);
+  --n-700: oklch(0.395 0.005 75);
+  --n-800: oklch(0.284 0.004 75);
+  --n-900: oklch(0.205 0.003 75);
+  --n-950: oklch(0.145 0.002 75);
+
+  /**
+   * Status hues.
+   *
+   * These are the only chromatic values in the entire system, and they are
+   * deliberately low chroma. Colour here is information (this order is late),
+   * never decoration. Saturated status colours are the fastest way to make a
+   * money screen look like a toy.
+   *
+   * Each hue ships a tint (pill background), a line (pill border) and an ink
+   * (text/icon) so contrast is decided once, here, and never improvised.
+   */
+
+  /* Amber: work in progress, partially paid */
+  --amber-tint: oklch(0.968 0.036 85);
+  --amber-line: oklch(0.898 0.055 82);
+  --amber-ink: oklch(0.505 0.115 68);
+
+  /* Green: settled, paid */
+  --green-tint: oklch(0.965 0.033 158);
+  --green-line: oklch(0.897 0.052 158);
+  --green-ink: oklch(0.478 0.096 156);
+
+  /* Red: overdue, destructive, error */
+  --red-tint: oklch(0.966 0.028 25);
+  --red-line: oklch(0.897 0.048 25);
+  --red-ink: oklch(0.524 0.172 27);
+
+  /* Motion ------------------------------------------------------------- */
+
+  /**
+   * Durations only. The easing curves live in `theme.css` because Tailwind
+   * owns the `--ease-*` namespace and emits those to `:root` itself; defining
+   * them here too would be a circular reference.
+   *
+   * Press is the shortest on purpose. Acknowledgement must feel immediate;
+   * everything after it can afford to breathe.
+   */
+  --duration-instant: 100ms;
+  --duration-fast: 160ms;
+  --duration-base: 200ms;
+  --duration-slow: 280ms;
+}
