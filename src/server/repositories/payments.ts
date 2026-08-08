@@ -1,11 +1,12 @@
 import { prisma } from "@/server/db/client";
-import { ApiError, notFound } from "@/server/api/errors";
+import { ApiError } from "@/server/api/errors";
 import {
   calculateAmountPaidCents,
   calculateOrderTotalCents,
   validatePayment,
 } from "@/lib/domain/orders";
 import type { RecordPaymentInput } from "@/lib/schemas/order";
+import { lockOrderForWrite } from "./lock";
 import { type OrderDto, toDateOnly } from "./orders";
 import { getOrder } from "./orders";
 
@@ -67,25 +68,9 @@ export async function recordPayment(
   asOf: Date = new Date(),
 ): Promise<RecordPaymentResult> {
   const paymentId = await prisma.$transaction(async (tx) => {
-    /**
-     * Step 1: take the row lock.
-     *
-     * Raw SQL because Prisma's query API has no `FOR UPDATE`. The selected
-     * column is irrelevant; acquiring the lock is the entire purpose. Ownership
-     * is part of the predicate so a lock is never taken on another tenant's row.
-     *
-     * Values are interpolated by Prisma's tagged template, which parameterises
-     * them. This is not string concatenation and is not injectable.
-     */
-    const locked = await tx.$queryRaw<Array<{ id: string }>>`
-      SELECT "id" FROM "orders"
-      WHERE "id" = ${orderId} AND "ownerId" = ${ownerId}
-      FOR UPDATE
-    `;
-
-    if (locked.length === 0) {
-      throw notFound("order");
-    }
+    // Step 1: take the row lock. Shared with the order write paths so there is
+    // exactly one implementation of it. See `lock.ts`.
+    await lockOrderForWrite(tx, ownerId, orderId);
 
     /**
      * Step 2: read the balance while holding the lock.
