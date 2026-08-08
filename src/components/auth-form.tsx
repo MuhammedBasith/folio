@@ -90,21 +90,21 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <div className="w-full max-w-form">
           <Link
             href="/"
-            className="font-heading text-[1.5rem] leading-none tracking-[-0.02em] text-ink"
+            className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em] text-ink transition-opacity duration-160 hover:opacity-60"
           >
-            Ledger
+            Tally
           </Link>
 
-          <h1 className="mt-8 font-heading text-display-sm text-ink">
-            {isSignup ? "Create your ledger" : "Welcome back"}
+          <h1 className="mt-9 font-heading text-display text-ink">
+            {isSignup ? "Create your tally" : "Welcome back"}
           </h1>
-          <p className="mt-2 text-body-sm text-ink-muted">
+          <p className="mt-1.5 text-body-sm text-ink-muted">
             {isSignup
               ? "One account, and only you can see your orders."
               : "Sign in to see who owes you what."}
           </p>
 
-          <form onSubmit={handleSubmit} noValidate className="mt-8 space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="mt-7 space-y-3.5">
             <Field
               label="Email"
               name="email"
@@ -136,7 +136,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
               </p>
             ) : null}
 
-            <Button type="submit" size="lg" className="w-full" disabled={busy}>
+            <Button type="submit" className="w-full" disabled={busy}>
               {busy
                 ? isSignup
                   ? "Creating account"
@@ -147,7 +147,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             </Button>
           </form>
 
-          <p className="mt-6 text-caption text-ink-muted">
+          <p className="mt-5 text-caption text-ink-muted">
             {isSignup ? "Already have an account? " : "No account yet? "}
             <Link
               href={isSignup ? "/login" : "/signup"}
@@ -158,10 +158,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           </p>
 
           {!isSignup ? (
-            <div className="mt-8 rounded-lg border border-line bg-surface-raised px-4 py-3">
+            <div className="mt-7 rounded-md border border-line bg-surface-raised px-3.5 py-2.5">
               <p className="text-label uppercase text-ink-faint">Demo sign in</p>
               <p className="mt-1 font-mono text-caption text-ink">
-                demo@ledger.app
+                demo@tally.app
                 <span className="mx-2 text-ink-disabled">/</span>
                 demo1234
               </p>
@@ -197,7 +197,7 @@ function Field({
 
   return (
     <div className="space-y-1.5">
-      <label htmlFor={name} className="block text-body-sm font-medium text-ink">
+      <label htmlFor={name} className="block text-label uppercase text-ink-faint">
         {label}
       </label>
       <Input
