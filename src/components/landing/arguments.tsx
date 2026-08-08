@@ -60,8 +60,19 @@ export function StatusRule() {
 
         <Reveal delayIndex={1}>
           <ol className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-surface-raised">
+            {/*
+              Staggered, because the list IS the precedence. The paragraph
+              beside it says "Folio checks in this order", and four rows
+              arriving in that order is the same sentence shown rather than
+              claimed. `--stagger-index` is the same variable every other
+              staggered group on this page uses.
+            */}
             {RULES.map((rule, index) => (
-              <li key={rule.status} className="flex items-baseline gap-4 px-4 py-4">
+              <li
+                key={rule.status}
+                style={{ "--stagger-index": index } as React.CSSProperties}
+                className="reveal-item flex items-baseline gap-4 px-4 py-4"
+              >
                 <span className="text-caption text-ink-disabled">
                   {index + 1}
                 </span>
@@ -122,14 +133,25 @@ export function Exactness() {
             ].map(([label, value], index) => (
               <div
                 key={index}
-                className="flex justify-between border-b border-line-subtle px-4 py-2.5 text-ink-muted"
+                style={{ "--stagger-index": index } as React.CSSProperties}
+                className="reveal-item flex justify-between border-b border-line-subtle px-4 py-2.5 text-ink-muted"
               >
                 <span>{label}</span>
                 <span className="tabular-nums">{value}</span>
               </div>
             ))}
 
-            <div className="flex justify-between bg-surface-inset px-4 py-2.5 text-ink">
+            {/*
+              The stagger continues past the map on purpose. These last two rows
+              are the answer the four above it add up to, and they only read as
+              an answer if they arrive after the working. Indices are hardcoded
+              because they follow a fixed-length list; a shared counter for six
+              rows in two shapes would be arithmetic to save nothing.
+            */}
+            <div
+              style={{ "--stagger-index": 4 } as React.CSSProperties}
+              className="reveal-item flex justify-between bg-surface-inset px-4 py-2.5 text-ink"
+            >
               <span>Still due, in cents</span>
               <span className="tabular-nums">$0.01</span>
             </div>
@@ -140,7 +162,10 @@ export function Exactness() {
               what comes back. Wrapped so it does not force the card wider than
               its column on a phone.
             */}
-            <div className="flex flex-col gap-1 border-t border-line-subtle px-4 py-2.5 text-caption text-status-overdue-ink sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <div
+              style={{ "--stagger-index": 5 } as React.CSSProperties}
+              className="reveal-item flex flex-col gap-1 border-t border-line-subtle px-4 py-2.5 text-caption text-status-overdue-ink sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+            >
               <span className="shrink-0">Still due, in decimals</span>
               <span className="break-all tabular-nums">
                 0.010000000000005116
