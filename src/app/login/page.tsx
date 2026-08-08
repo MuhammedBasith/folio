@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth-form";
 import { getCurrentUser } from "@/server/auth/current-user";
 
 export const metadata: Metadata = {
-  title: "Sign in · Folio",
+  title: "Sign in",
 };
 
 export default async function LoginPage() {

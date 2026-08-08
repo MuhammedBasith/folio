@@ -4,7 +4,7 @@ import { AuthForm } from "@/components/auth-form";
 import { getCurrentUser } from "@/server/auth/current-user";
 
 export const metadata: Metadata = {
-  title: "Create an account · Folio",
+  title: "Create an account",
 };
 
 export default async function SignupPage() {
