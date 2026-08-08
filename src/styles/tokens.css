@@ -1,0 +1,205 @@
+/**
+ * Tier 2: semantics.
+ *
+ * Every token here is named for its JOB, never for its appearance. Components
+ * reference only this layer, which means a palette change happens in one file
+ * and nowhere else.
+ *
+ * Two decisions are encoded here and worth stating out loud:
+ *
+ * 1. Elevation is expressed as TINT, not shadow. Surfaces separate from each
+ *    other by getting fractionally darker and by carrying a hairline border.
+ *    Shadows are reserved for things that genuinely float above the page
+ *    (dialogs, dropdowns). A drop shadow on every card is the single loudest
+ *    tell of generated UI.
+ *
+ * 2. The accent is black. Not blue, not purple. Selection, primary action and
+ *    active state are all rendered in ink, so the four status colours are the
+ *    only chroma on screen and therefore read instantly as meaning.
+ */
+
+:root {
+  /* Surfaces ----------------------------------------------------------- */
+  --surface-page: var(--n-0);
+  --surface-raised: var(--n-25);
+  --surface-sunken: var(--n-100);
+  --surface-overlay: var(--n-0);
+  --surface-inverse: var(--n-900);
+
+  /* Text --------------------------------------------------------------- */
+  --text-primary: var(--n-900);
+  --text-secondary: var(--n-600);
+  --text-tertiary: var(--n-500);
+  --text-disabled: var(--n-400);
+  --text-inverse: var(--n-25);
+
+  /* Lines -------------------------------------------------------------- */
+  /* subtle: dividers inside a container that already has a border */
+  --line-subtle: var(--n-150);
+  /* default: the border of a component */
+  --line-default: var(--n-200);
+  /* strong: selected or active. Near ink, per the reference UIs */
+  --line-strong: var(--n-900);
+
+  /* Actions ------------------------------------------------------------ */
+  --action-primary: var(--n-900);
+  --action-primary-hover: var(--n-800);
+  --action-primary-ink: var(--n-25);
+
+  --action-secondary: var(--n-0);
+  --action-secondary-hover: var(--n-50);
+  --action-secondary-ink: var(--n-900);
+
+  --action-ghost-hover: var(--n-100);
+  --action-ghost-ink: var(--n-700);
+
+  --action-danger: var(--red-ink);
+  --action-danger-hover: oklch(0.462 0.172 27);
+  --action-danger-ink: var(--n-0);
+
+  --focus-ring: var(--n-900);
+
+  /* Status ------------------------------------------------------------- */
+  /* Named for the domain, so components read as English. */
+  --status-pending-tint: var(--n-100);
+  --status-pending-line: var(--n-200);
+  --status-pending-ink: var(--n-600);
+
+  --status-partial-tint: var(--amber-tint);
+  --status-partial-line: var(--amber-line);
+  --status-partial-ink: var(--amber-ink);
+
+  --status-paid-tint: var(--green-tint);
+  --status-paid-line: var(--green-line);
+  --status-paid-ink: var(--green-ink);
+
+  --status-overdue-tint: var(--red-tint);
+  --status-overdue-line: var(--red-line);
+  --status-overdue-ink: var(--red-ink);
+
+  /* Feedback (forms, toasts) ------------------------------------------- */
+  --feedback-error-tint: var(--red-tint);
+  --feedback-error-line: var(--red-line);
+  --feedback-error-ink: var(--red-ink);
+
+  --feedback-success-tint: var(--green-tint);
+  --feedback-success-line: var(--green-line);
+  --feedback-success-ink: var(--green-ink);
+
+  /* Elevation ---------------------------------------------------------- */
+  /**
+   * Layered rather than a single blurred blob: a tight contact shadow plus a
+   * wider ambient one, which is how light actually behaves. Opacities are low
+   * enough that the shadow is felt, not seen.
+   */
+  --elevation-raised:
+    0 1px 2px oklch(0.145 0.002 75 / 0.04),
+    0 1px 1px oklch(0.145 0.002 75 / 0.03);
+
+  --elevation-overlay:
+    0 1px 1px oklch(0.145 0.002 75 / 0.04),
+    0 4px 8px -2px oklch(0.145 0.002 75 / 0.06),
+    0 16px 32px -8px oklch(0.145 0.002 75 / 0.1);
+
+  /* Motion ------------------------------------------------------------- */
+  /**
+   * Semantic pairings of duration and curve, so a component never has to pick
+   * both. Press is faster than release on purpose: the system should
+   * acknowledge instantly and relax at leisure.
+   */
+  --motion-press: transform var(--duration-instant) var(--ease-out-quint);
+  --motion-release: transform var(--duration-fast) var(--ease-spring);
+  --motion-hover: background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease, color var(--duration-fast) ease;
+  --motion-popover: opacity var(--duration-base) var(--ease-out-quint),
+    transform var(--duration-base) var(--ease-out-quint);
+  --motion-dialog: opacity var(--duration-slow) var(--ease-out-quint),
+    transform var(--duration-slow) var(--ease-out-quint);
+
+  /* Layout ------------------------------------------------------------- */
+  /**
+   * Named widths beat magic numbers scattered across route files.
+   * Reading columns use Tailwind's `max-w-prose` (65ch) rather than a token
+   * here, since measure belongs in characters, not rem.
+   */
+  --width-content: 72rem;
+  --width-detail: 60rem;
+  --width-form: 22.5rem;
+}
+
+/**
+ * Dark theme.
+ *
+ * Not shipped behind a toggle: every reference for this product is light, and
+ * a half-tuned dark mode is worse than none. It is defined anyway so the app
+ * degrades coherently rather than illegibly if `.dark` is ever applied.
+ *
+ * Note the inversions that are NOT symmetrical: raised surfaces get LIGHTER
+ * than the page here (light travels up), and hairlines become translucent
+ * white rather than a fixed grey so they survive over any surface.
+ */
+.dark {
+  --surface-page: var(--n-950);
+  --surface-raised: oklch(0.19 0.003 75);
+  --surface-sunken: oklch(0.17 0.002 75);
+  --surface-overlay: oklch(0.21 0.003 75);
+  --surface-inverse: var(--n-50);
+
+  --text-primary: var(--n-50);
+  --text-secondary: var(--n-400);
+  --text-tertiary: var(--n-500);
+  --text-disabled: var(--n-600);
+  --text-inverse: var(--n-950);
+
+  --line-subtle: oklch(1 0 0 / 0.06);
+  --line-default: oklch(1 0 0 / 0.11);
+  --line-strong: var(--n-100);
+
+  --action-primary: var(--n-50);
+  --action-primary-hover: var(--n-200);
+  --action-primary-ink: var(--n-950);
+
+  --action-secondary: oklch(1 0 0 / 0.04);
+  --action-secondary-hover: oklch(1 0 0 / 0.08);
+  --action-secondary-ink: var(--n-50);
+
+  --action-ghost-hover: oklch(1 0 0 / 0.06);
+  --action-ghost-ink: var(--n-300);
+
+  --action-danger: oklch(0.62 0.19 27);
+  --action-danger-hover: oklch(0.67 0.19 27);
+  --action-danger-ink: var(--n-0);
+
+  --focus-ring: var(--n-200);
+
+  --status-pending-tint: oklch(1 0 0 / 0.06);
+  --status-pending-line: oklch(1 0 0 / 0.12);
+  --status-pending-ink: var(--n-400);
+
+  --status-partial-tint: oklch(0.32 0.055 70);
+  --status-partial-line: oklch(0.42 0.08 70);
+  --status-partial-ink: oklch(0.86 0.09 82);
+
+  --status-paid-tint: oklch(0.3 0.05 158);
+  --status-paid-line: oklch(0.4 0.07 158);
+  --status-paid-ink: oklch(0.85 0.11 158);
+
+  --status-overdue-tint: oklch(0.31 0.07 25);
+  --status-overdue-line: oklch(0.42 0.11 25);
+  --status-overdue-ink: oklch(0.84 0.1 25);
+
+  --feedback-error-tint: var(--status-overdue-tint);
+  --feedback-error-line: var(--status-overdue-line);
+  --feedback-error-ink: var(--status-overdue-ink);
+
+  --feedback-success-tint: var(--status-paid-tint);
+  --feedback-success-line: var(--status-paid-line);
+  --feedback-success-ink: var(--status-paid-ink);
+
+  /* Shadows read as noise on dark surfaces, so elevation leans on tint. */
+  --elevation-raised: 0 1px 2px oklch(0 0 0 / 0.3);
+  --elevation-overlay:
+    0 1px 1px oklch(0 0 0 / 0.3),
+    0 8px 16px -4px oklch(0 0 0 / 0.4),
+    0 24px 48px -12px oklch(0 0 0 / 0.5);
+}
