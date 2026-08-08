@@ -5,12 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Mark } from "@/components/brand/mark";
 import { StatusBadge, StatusDot } from "@/components/status-badge";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { INDEXABLE } from "@/lib/site";
 import { ORDER_STATUSES } from "@/lib/domain/orders";
 import { STATUS_LABELS } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Design tokens",
   description: "Living reference for the token system Folio is built on.",
+  // The only other page worth ranking, so it declares its own canonical and
+  // asks to be indexed. Both are per-page facts; see `INDEXABLE` for why they
+  // are not inherited from the root layout.
+  alternates: { canonical: "/tokens" },
+  robots: INDEXABLE,
 };
 
 /**
