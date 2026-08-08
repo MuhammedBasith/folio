@@ -791,9 +791,18 @@ strings from the dashboard:
 | Variable | Which string | Why |
 |---|---|---|
 | `DATABASE_URL` | the **pooled** one, host contains `-pooler` | Serverless functions open a connection per invocation. Without the pooler you exhaust Postgres' connection limit under any real traffic. |
-| `DIRECT_URL` | the **unpooled** one | Migrations need a real session. PgBouncer in transaction mode cannot run the statements Prisma emits for a migration. |
+| `DIRECT_URL` | the **unpooled** one, the same host without `-pooler` | Migrations need a real session. PgBouncer in transaction mode cannot run the statements Prisma emits for a migration. |
 
-Append `?sslmode=require` to both, and `&pgbouncer=true` to the pooled one.
+Neon shows one string at a time; toggle connection pooling in the dashboard, or
+just delete `-pooler` from the host to get the direct one.
+
+Both need `?sslmode=require`. **Do not add `pgbouncer=true`.** That parameter is
+read by Prisma's own query engine, and this app does not use it: the runtime
+client goes through `@prisma/adapter-pg`, so the URL is parsed by node-postgres,
+which ignores it. It is harmless, but it does nothing, and leaving it in implies
+a mechanism that is not there. Interactive transactions, which the payment row
+lock depends on, work over the pooled endpoint regardless: PgBouncer's
+transaction mode holds one server connection for the life of a `BEGIN`/`COMMIT`.
 
 ### 2. Vercel
 
