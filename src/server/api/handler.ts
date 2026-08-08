@@ -142,14 +142,22 @@ export async function requireSession(
 
 type RouteContext<P> = { params: Promise<P> };
 
+/**
+ * Handlers return `Response`, not `NextResponse`.
+ *
+ * `NextResponse` is a `Response`, so JSON routes still satisfy this, while the
+ * CSV export can return a plain `Response` with its own content-type and
+ * content-disposition headers without being forced through a JSON wrapper.
+ */
+
 /** Wraps a public route so thrown errors become the standard envelope. */
 export function route<P = Record<string, never>>(
-  handler: (request: Request, context: RouteContext<P>) => Promise<NextResponse>,
+  handler: (request: Request, context: RouteContext<P>) => Promise<Response>,
 ) {
   return async (
     request: Request,
     context: RouteContext<P>,
-  ): Promise<NextResponse> => {
+  ): Promise<Response> => {
     try {
       return await handler(request, context);
     } catch (error) {
@@ -169,12 +177,12 @@ export function authedRoute<P = Record<string, never>>(
   handler: (
     request: Request,
     context: RouteContext<P> & { session: SessionPayload },
-  ) => Promise<NextResponse>,
+  ) => Promise<Response>,
 ) {
   return async (
     request: Request,
     context: RouteContext<P>,
-  ): Promise<NextResponse> => {
+  ): Promise<Response> => {
     try {
       const session = await requireSession(request);
       return await handler(request, { ...context, session });
