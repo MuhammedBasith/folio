@@ -399,8 +399,8 @@ order exists.
 ## Testing
 
 ```
-95  unit tests         pure logic, no I/O, ~200ms
-24  integration tests  real PostgreSQL, real transactions, real locks
+96  unit tests         pure logic, no I/O, ~200ms
+30  integration tests  real PostgreSQL, real transactions, real locks
 47  smoke checks       end-to-end over HTTP against a running server
 ```
 
@@ -430,7 +430,53 @@ working code to confirm the suite catches it:
 | Check `overdue` before `paid` in the precedence chain | 3 |
 | Use `>` instead of `>=` for the paid comparison | 4 |
 | **Remove `FOR UPDATE` from the payment lock** | **2** |
+| **Remove the row lock from `updateOrder` / `deleteOrder`** | **3** |
 | Revert the `cn()` fix | 9 |
+
+### A critical bug found by adversarial review
+
+After the payment lock was written, tested and documented, a review pass over
+the whole codebase found that **the lock was only on the payment path.**
+`updateOrder` and `deleteOrder` both read `_count.payments` with a plain,
+unlocked `SELECT` and only touched the order row afterwards.
+
+Reproduced 40 times out of 40 against a running server:
+
+```
+order: 1 line, 2 x $500.00 = $1,000.00, no payments
+
+  PATCH  /api/orders/:id      replace lines with 1 x $1.00   -> 200
+  POST   /api/orders/:id/payments   $1,000.00                -> 201   (concurrent)
+
+  GET    /api/orders/:id
+    totalCents: 100      paidCents: 100000      dueCents: 0
+    status: "paid"       editable: false
+```
+
+$1,000 collected against a $1 order, reported as settled because `dueCents`
+clamps at zero, and frozen so it could not be corrected through the product.
+Both requests succeeded. Neither did anything the API considered wrong.
+
+`deleteOrder` was worse in kind: its guard and its `DELETE` were not even in a
+transaction, and `Payment.orderId` cascades, so a payment that committed between
+the two was erased after having been acknowledged with a 201.
+
+The fix extracts the lock into `src/server/repositories/lock.ts` and calls it
+first in every write path, so a new write path cannot omit it without visibly
+not calling it. `src/server/repositories/locking.integration.test.ts` covers
+both races and fails without the fix.
+
+**The lesson worth keeping:** "this codebase takes a row lock" is not a property
+of a codebase. It is a property of each individual write path, and having
+written one correctly is not evidence about the others.
+
+Fifteen further defects from the same review were fixed, including: an order
+whose aggregate total exceeded `Number.MAX_SAFE_INTEGER` could be committed and
+would then make the whole account unreadable; `ORDER BY reference DESC` sorts
+text, so a user hitting `ORD-9999` could never create another order; `"1,50"`
+parsed as `$150.00`; the payment dialog stuck on "Recording" after the first
+successful payment; and the table's keyboard focus ring had been removed with
+nothing put in its place.
 
 The integration tests use a real database rather than a mock deliberately: the
 single most important behaviour here is enforced by PostgreSQL, and a mocked
@@ -527,6 +573,9 @@ Roughly in order of how much it would matter:
 
 1. **Rate limit the auth endpoints.** Login is currently unlimited, which makes
    credential stuffing free. This is the first thing I would add.
+   Signup answers `409 EMAIL_TAKEN`, which is honest and useful to a real user
+   but does undo the account-enumeration defences login goes to trouble to
+   maintain. Rate limiting is what makes keeping that message defensible.
 2. **Make logout actually revoke.** Tokens are stateless, so `POST /logout`
    clears the cookie but a captured bearer token stays valid until it expires.
    Production needs either short-lived access tokens with refresh, or a
@@ -543,12 +592,22 @@ Roughly in order of how much it would matter:
 6. **Idempotency keys on the payment endpoint.** The row lock stops double
    *collection*, but a client that retries a timed-out request can still record a
    genuine second payment. An `Idempotency-Key` header would close that.
-7. **Structured logging and error tracking.** `console.error` is not an
+   Related: `recordPayment` commits and then reloads the order to build its
+   response, so a failure in that reload reports an error for a payment that is
+   already durably recorded. Returning the payment id from inside the
+   transaction would remove the window.
+7. **`Cache-Control: private, no-store` on authenticated responses.** They
+   currently carry no cache directives and a `Vary` that omits `Cookie` and
+   `Authorization`. Nothing between the app and the browser caches them today,
+   but that is a property of the current deployment rather than of the code.
+8. **Structured logging and error tracking.** `console.error` is not an
    observability strategy.
-8. **Per-user timezones**, so "overdue" means overdue where the user is.
-9. **Refunds**, as their own entity rather than negative payments, so
-   `sum(payments)` keeps meaning "money received".
-10. **Browser tests** for the critical flows. The smoke test covers the API
+9. **Per-user timezones**, so "overdue" means overdue where the user is. Date
+   inputs already default to the user's local calendar day; comparison is still
+   UTC.
+10. **Refunds**, as their own entity rather than negative payments, so
+    `sum(payments)` keeps meaning "money received".
+11. **Browser tests** for the critical flows. The smoke test covers the API
     thoroughly; the UI is currently verified by screenshot rather than by
     assertion.
 
