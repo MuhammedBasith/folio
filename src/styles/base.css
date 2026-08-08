@@ -41,6 +41,24 @@
   }
 
   /**
+   * The landing page paints its own ground onto the body.
+   *
+   * Its wrapper is the warmer `surface-canvas`, and the gradient plates inside
+   * it are deliberately allowed to hang past its bottom edge so the light falls
+   * away rather than stopping. Those overhanging pixels land on the BODY, which
+   * was still the product's page colour, and the join between the two showed as
+   * a horizontal seam directly under the footer.
+   *
+   * `:has()` lets the child tell its ancestor what colour to be, which is the
+   * only way to do this without either lifting the colour into the root layout
+   * (where every other route would inherit it) or clipping the plates, which is
+   * the exact thing being avoided.
+   */
+  body:has([data-page="landing"]) {
+    background-color: var(--surface-canvas);
+  }
+
+  /**
    * Site-wide film grain.
    *
    * A fixed pseudo-element rather than a DOM node, so no component has to know

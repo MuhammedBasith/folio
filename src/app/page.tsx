@@ -33,7 +33,20 @@ export default async function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-surface-canvas">
+    <div
+      /**
+       * `overflow-x-clip`, NOT `overflow-hidden`.
+       *
+       * The gradient plates are wider than the viewport and are meant to bleed
+       * from one section into the next, so no section may clip them. Something
+       * still has to stop a plate that hangs off the left edge from producing a
+       * horizontal scrollbar, and `clip` does exactly that without creating a
+       * scroll container the way `hidden` would, which means vertical bleed
+       * still works. That distinction is the entire reason this is `clip`.
+       */
+      data-page="landing"
+      className="flex min-h-dvh flex-col overflow-x-clip bg-surface-canvas"
+    >
       <SiteHeader />
 
       <main className="flex-1">
