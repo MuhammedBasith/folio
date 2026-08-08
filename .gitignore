@@ -80,3 +80,7 @@ CLAUDE.md
 
 # test env
 .env.test
+
+# scratch files from review tooling
+/probe*.mjs
+**/zz-*.test.ts
