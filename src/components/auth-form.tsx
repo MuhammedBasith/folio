@@ -8,7 +8,6 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mark } from "@/components/brand/mark";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { ApiClientError, api } from "@/lib/api-client";
 import { loginSchema, signupSchema } from "@/lib/schemas/auth";
 
@@ -121,22 +120,33 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <main className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       {/* ---- The form ---- */}
-      <div className="flex flex-col px-5 py-6 sm:px-8 md:px-12">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
-          >
-            <Mark className="size-4" />
-            <span className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em]">
-              Folio
-            </span>
-          </Link>
-          <ThemeToggle />
-        </div>
+      {/*
+        The form is CENTRED IN ITS COLUMN, not pinned to the left gutter. It was
+        flush against the edge with the gradient panel filling everything to its
+        right, so the page read as two unrelated halves rather than as one
+        composition. Centring puts it near the optical middle of the left half,
+        which is where the eye lands first.
+      */}
+      <div className="flex flex-col items-center px-5 py-6 sm:px-8 md:px-12">
+        {/*
+          NO THEME TOGGLE HERE. Signing in is a single-purpose screen and the
+          toggle was the only other control on it, so it read as a second thing
+          to decide at the moment the page most wants one. It lives in the
+          marketing header and inside the product, which is where somebody is
+          actually browsing rather than transacting.
+        */}
+        <Link
+          href="/"
+          className="inline-flex w-full max-w-md items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
+        >
+          <Mark className="size-4" />
+          <span className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em]">
+            Folio
+          </span>
+        </Link>
 
-        <div className="flex flex-1 items-center py-10">
-          <div className="w-full max-w-form">
+        <div className="flex w-full max-w-md flex-1 items-center py-10">
+          <div className="w-full">
             <h1 className="font-heading text-display-lg text-ink">
               {isSignup ? "Start your ledger" : "Welcome back"}
             </h1>
