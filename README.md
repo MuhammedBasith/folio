@@ -1,4 +1,4 @@
-# Ledger — orders and settlements
+# Ledger, orders and settlements
 
 A small web application for tracking what customers owe you. Create orders with
 line items, record payments against them as the money arrives, and see at a
@@ -155,7 +155,7 @@ breaks with it.
 **There is no such thing as a "dollars number" in this codebase.**
 
 Money exists in exactly two forms: an integer count of cents (always named
-`*Cents`), or a string — raw user input on the way in, formatted output on the
+`*Cents`), or a string: raw user input on the way in, formatted output on the
 way out. A `number` holding `12.34` never exists anywhere, which removes the
 entire class of bug where dollars and cents get mixed at a call site.
 
@@ -199,7 +199,7 @@ Status is **never stored**. It is computed on read, every time.
 
 Two reasons. A stored total goes stale the moment a line item is edited. And
 `overdue` would go stale merely because time passed, with no write to trigger an
-update — the row would be wrong at 00:01 having been right at 23:59.
+update. The row would be wrong at 00:01 having been right at 23:59.
 
 ### The rule is the ordering
 
@@ -228,7 +228,7 @@ paid and overdue. Precedence decides what the user sees:
 
 Due dates are stored as SQL `DATE` (no time component), which Prisma returns as
 midnight UTC. Comparing that against a raw `new Date()` would tip an order into
-`overdue` at midnight UTC **on its own due date** — a full day early. Both sides
+`overdue` at midnight UTC **on its own due date**, a full day early. Both sides
 are therefore reduced to a UTC calendar day before comparison, so the rule reads
 exactly as the brief states it: past the due *date*.
 
@@ -250,7 +250,7 @@ a test proving it works.
 
 ### The race
 
-An order has $600 outstanding. Two $600 payments arrive a millisecond apart —
+An order has $600 outstanding. Two $600 payments arrive a millisecond apart:
 a double-clicked button, or two people working the same account.
 
 ```
@@ -280,7 +280,7 @@ operation:
 
 The lock is taken on the **order** row, not on payments: you cannot lock rows
 that do not exist yet, and the invariant being protected is "the sum of this
-order's payments". Read Committed isolation is sufficient — `FOR UPDATE`
+order's payments". Read Committed isolation is sufficient, because `FOR UPDATE`
 provides the mutual exclusion, and a higher level would add serialisation
 failures to handle without adding safety for this invariant.
 
@@ -303,12 +303,13 @@ a live server and asserts exactly one is accepted.
 ## Order immutability
 
 **An order becomes read-only once its first payment is recorded.** Edits and
-deletes are both refused with `409 ORDER_LOCKED`, enforced in the repository —
+deletes are both refused with `409 ORDER_LOCKED`, enforced in the repository,
 not by hiding buttons.
 
-The brief allows either policy provided it is explained. The alternative — allow
+The brief allows either policy provided it is explained. The alternative, allowing
 edits, but reject any that would drop the total below what has already been
-collected — needs a second validation path on every write, and can still leave a
+edits but rejecting any that drop the total below what has been collected, needs a
+second validation path on every write, and can still leave a
 customer's receipt disagreeing with the order. Freezing matches how invoicing
 actually works: a settled document is corrected by a credit note, not by editing
 history.
@@ -325,9 +326,9 @@ All responses are JSON. Money is always integer cents.
 
 Two transports, both first-class:
 
-- **Cookie** — `POST /api/auth/login` sets an httpOnly, `sameSite=lax` session
+- **Cookie.** `POST /api/auth/login` sets an httpOnly, `sameSite=lax` session
   cookie. This is what the browser uses.
-- **Bearer** — the same response returns `{ token }` in the body. Send it as
+- **Bearer.** The same response returns `{ token }` in the body. Send it as
   `Authorization: Bearer <token>`. The header takes precedence over the cookie.
 
 The bearer path exists so the API is testable from a terminal in one command,
@@ -374,7 +375,7 @@ Every failure uses the same envelope:
 
 `fields` maps a message to the input that caused it, so a form can attach it to
 the right box. `details` carries structured values a programmatic client can act
-on — which is why the maximum allowed amount appears both in prose and as a
+on, which is why the maximum allowed amount appears both in prose and as a
 number.
 
 | Code | Status | Meaning |
@@ -473,7 +474,7 @@ A few decisions worth stating:
   darker and carrying a hairline border. Shadows are reserved for things that
   genuinely float (dialogs, dropdowns).
 - **The accent is ink.** Primary action, selection and active state are all
-  black, which leaves the four status colours as the only chroma on screen — so
+  black, which leaves the four status colours as the only chroma on screen, so
   colour reads instantly as information rather than decoration.
 - **Status colour is never the only signal.** Every badge carries a label and a
   dot as well, so the four states remain distinguishable without colour vision.
@@ -532,7 +533,7 @@ Roughly in order of how much it would matter:
    server-side denylist keyed on a token id.
 3. **Maintain `paid_cents` on the order transactionally.** Written inside the
    same locked transaction that inserts a payment, it stays correct by
-   construction while making the status filter a plain indexed predicate — only
+   construction while making the status filter a plain indexed predicate. Only
    `overdue` would remain derived, and that is a date comparison an index
    already covers. This is the change that makes the list query scale.
 4. **Paginate the order list.** It currently returns everything. Cursor

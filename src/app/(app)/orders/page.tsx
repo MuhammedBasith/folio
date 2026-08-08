@@ -11,7 +11,7 @@ import { requireUser } from "@/server/auth/current-user";
 import { listOrders } from "@/server/repositories/orders";
 
 export const metadata: Metadata = {
-  title: "Orders — Ledger",
+  title: "Orders · Ledger",
 };
 
 /**

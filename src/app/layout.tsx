@@ -27,7 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ledger — orders and settlements",
+  title: "Ledger · orders and settlements",
   description:
     "Track what customers owe you, record payments as they arrive, and see at a glance who is overdue.",
 };

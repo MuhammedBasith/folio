@@ -309,7 +309,9 @@ export function OrderForm() {
                       data-numeric
                       className="text-body-sm text-ink-muted sm:min-w-24 sm:text-right"
                     >
-                      {lineTotal === null ? "—" : formatMoney(lineTotal)}
+                      {/* Blank rather than a dash: the line has no total yet,
+                          and the reserved width stops the row from jumping. */}
+                      {lineTotal === null ? "" : formatMoney(lineTotal)}
                     </span>
                     <Button
                       type="button"
