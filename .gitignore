@@ -73,3 +73,6 @@ CLAUDE.md
 # prisma
 /prisma/*.db
 /prisma/*.db-journal
+
+# prisma generated client
+/src/generated
