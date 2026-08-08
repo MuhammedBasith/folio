@@ -21,9 +21,9 @@ export async function generateMetadata({
 
   try {
     const order = await getOrder(session.userId, id);
-    return { title: `${order.reference} · ${order.customer} · Ledger` };
+    return { title: `${order.reference} · ${order.customer} · Tally` };
   } catch {
-    return { title: "Order · Ledger" };
+    return { title: "Order · Tally" };
   }
 }
 
@@ -59,25 +59,25 @@ export default async function OrderDetailPage({
   });
 
   return (
-    <main className="mx-auto w-full max-w-detail px-5 py-10 md:px-8 md:py-14">
+    <main className="mx-auto w-full max-w-detail px-5 py-8 md:px-8 md:py-10">
       <Link
         href="/orders"
-        className="inline-flex items-center gap-1.5 text-caption text-ink-muted transition-colors hover:text-ink"
+        className="inline-flex items-center gap-1.5 text-caption text-ink-faint transition-colors duration-160 hover:text-ink"
       >
-        <ArrowLeft aria-hidden className="size-3.5" />
-        All orders
+        <ArrowLeft aria-hidden className="size-3" />
+        Orders
       </Link>
 
       {/* ---- Header ---- */}
-      <div className="mt-5 flex flex-wrap items-start justify-between gap-5">
+      <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="font-mono text-label uppercase text-ink-faint">
             {order.reference}
           </p>
-          <h1 className="mt-2 font-heading text-display text-ink">
+          <h1 className="mt-1.5 font-heading text-display text-ink">
             {order.customer}
           </h1>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
+          <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
             <span title={STATUS_DESCRIPTIONS[order.status]}>
               <StatusBadge status={order.status} />
             </span>
@@ -103,13 +103,13 @@ export default async function OrderDetailPage({
       </div>
 
       {order.notes ? (
-        <p className="mt-6 max-w-prose rounded-md border-l-2 border-line-strong/20 bg-surface-sunken px-4 py-3 text-body-sm text-ink-muted">
+        <p className="mt-5 max-w-prose rounded-md border-l-2 border-line-strong/15 bg-surface-sunken/70 px-3.5 py-2.5 text-body-sm text-ink-muted">
           {order.notes}
         </p>
       ) : null}
 
       {/* ---- Money ---- */}
-      <div className="mt-8 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
+      <div className="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line sm:grid-cols-3">
         <Figure label="Order total" cents={order.totalCents} />
         <Figure label="Paid" cents={order.paidCents} />
         <Figure
@@ -121,9 +121,9 @@ export default async function OrderDetailPage({
       </div>
 
       {/* ---- Lines ---- */}
-      <section className="mt-9">
+      <section className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="font-heading text-display-sm text-ink">Line items</h2>
+          <h2 className="text-label uppercase text-ink-faint">Line items</h2>
           {!order.editable ? (
             <p className="text-caption text-ink-faint">
               Locked: payments have been recorded
@@ -131,31 +131,31 @@ export default async function OrderDetailPage({
           ) : null}
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-lg border border-line bg-surface-raised">
-          <table className="w-full border-collapse">
+        <div className="mt-2 overflow-hidden rounded-lg border border-line bg-surface-raised">
+          <table className="w-full border-collapse text-body-sm">
             <thead>
               <tr className="border-b border-line-subtle bg-surface-sunken">
                 <th
                   scope="col"
-                  className="px-4 py-3 text-left text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-left text-label font-medium uppercase text-ink-faint"
                 >
                   Description
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
                 >
                   Qty
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
                 >
                   Unit price
                 </th>
                 <th
                   scope="col"
-                  className="px-4 py-3 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
                 >
                   Total
                 </th>
@@ -167,22 +167,22 @@ export default async function OrderDetailPage({
                   key={line.id}
                   className="border-b border-line-subtle last:border-b-0"
                 >
-                  <td className="px-4 py-3.5 text-body-sm text-ink">
+                  <td className="px-3 py-2.5 text-ink">
                     {line.description}
                   </td>
                   <td
                     data-numeric
-                    className="px-4 py-3.5 text-right text-body-sm text-ink-muted"
+                    className="px-3 py-2.5 text-right text-ink-muted"
                   >
                     {line.quantity}
                   </td>
-                  <td className="px-4 py-3.5 text-right text-body-sm">
+                  <td className="px-3 py-2.5 text-right">
                     <Money
                       cents={line.unitPriceCents}
                       className="text-ink-muted"
                     />
                   </td>
-                  <td className="px-4 py-3.5 text-right text-body-sm">
+                  <td className="px-3 py-2.5 text-right">
                     <Money cents={line.lineTotalCents} tone="strong" />
                   </td>
                 </tr>
@@ -192,11 +192,11 @@ export default async function OrderDetailPage({
               <tr className="border-t border-line bg-surface-sunken">
                 <td
                   colSpan={3}
-                  className="px-4 py-3.5 text-right text-label uppercase text-ink-faint"
+                  className="px-3 py-2.5 text-right text-label uppercase text-ink-faint"
                 >
                   Order total
                 </td>
-                <td className="px-4 py-3.5 text-right">
+                <td className="px-3 py-2.5 text-right">
                   <Money cents={order.totalCents} tone="strong" />
                 </td>
               </tr>
@@ -206,13 +206,11 @@ export default async function OrderDetailPage({
       </section>
 
       {/* ---- Payments ---- */}
-      <section className="mt-9">
-        <h2 className="font-heading text-display-sm text-ink">
-          Payment history
-        </h2>
+      <section className="mt-8">
+        <h2 className="text-label uppercase text-ink-faint">Payment history</h2>
 
         {order.payments.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-line bg-surface-raised px-6 py-12 text-center">
+          <div className="mt-2 rounded-lg border border-dashed border-line bg-surface-raised px-6 py-10 text-center">
             <p className="text-body-sm text-ink-muted">
               No payments recorded yet.
             </p>
@@ -221,18 +219,18 @@ export default async function OrderDetailPage({
             </p>
           </div>
         ) : (
-          <ol className="mt-4 overflow-hidden rounded-lg border border-line bg-surface-raised">
+          <ol className="mt-2 overflow-hidden rounded-lg border border-line bg-surface-raised">
             {order.payments.map((payment, index) => (
               <li
                 key={payment.id}
                 style={{ "--stagger-index": index } as React.CSSProperties}
-                className="rise-in flex flex-wrap items-center justify-between gap-3 border-b border-line-subtle px-4 py-4 last:border-b-0"
+                className="rise-in flex flex-wrap items-center justify-between gap-3 border-b border-line-subtle px-3 py-2.5 last:border-b-0"
               >
                 <div className="min-w-0">
                   <Money
                     cents={payment.amountCents}
                     tone="strong"
-                    className="text-body"
+                    className="text-body-sm"
                   />
                   {payment.note ? (
                     <p className="mt-0.5 truncate text-caption text-ink-muted">
@@ -274,11 +272,11 @@ function Figure({
   alert?: boolean;
 }) {
   return (
-    <div className="bg-surface-raised px-5 py-5">
+    <div className="bg-surface-raised px-4 py-3.5">
       <p className="text-label uppercase text-ink-faint">{label}</p>
       <p
         className={cn(
-          "mt-2 text-metric-lg",
+          "mt-1.5 text-metric-lg",
           alert && cents > 0
             ? "text-status-overdue-ink"
             : emphasis

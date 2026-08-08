@@ -132,7 +132,7 @@ export function RecordPaymentDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button size="lg" disabled={dueCents === 0}>
+        <Button disabled={dueCents === 0}>
           {dueCents === 0 ? "Fully paid" : "Record payment"}
         </Button>
       </DialogTrigger>
