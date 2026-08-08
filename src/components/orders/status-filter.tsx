@@ -171,11 +171,13 @@ export function StatusFilter({
           aria-hidden
           className={cn(
             "pointer-events-none absolute top-1 bottom-1 left-0 rounded-md",
-            // Raised, bordered and lit along the top edge: the same treatment
-            // every other raised control in the product gets, so the selected
-            // tab reads as a physical cap on a recessed track rather than as a
-            // slightly different shade of the same grey.
-            "bg-surface-raised shadow-raised inset-shadow-relief-soft",
+            // Raised and bordered, but NOT lit along the top edge. The relief
+            // that makes a button read as a cap read here as a bright hairline
+            // sitting on top of the tab, so the indicator looked like it had a
+            // lid. A segmented control is a flat plate sliding in a track; it
+            // wants uniform edges, and the border plus the contact shadow are
+            // enough to lift it off the track.
+            "bg-surface-raised shadow-raised",
             "border border-line-strong/12",
             indicator.animate
               ? "transition-[transform,width] duration-220 ease-out-quint"
