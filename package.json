@@ -1,24 +1,25 @@
 {
-  "name": "crossval",
+  "name": "tally",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint src scripts --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --project unit",
     "test:watch": "vitest --project unit",
     "test:integration": "vitest run --project integration",
     "test:all": "vitest run",
+    "smoke": "bun scripts/smoke.mjs",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "verify": "npm run typecheck && npm run lint && npm run test"
+    "verify": "bun run typecheck && bun run lint && bun run test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -54,5 +55,9 @@
     "tsx": "^4.23.11",
     "typescript": "^5",
     "vitest": "^4.1.10"
-  }
+  },
+  "trustedDependencies": [
+    "unrs-resolver"
+  ],
+  "packageManager": "bun@1.3.2"
 }

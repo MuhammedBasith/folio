@@ -84,3 +84,6 @@ CLAUDE.md
 # scratch files from review tooling
 /probe*.mjs
 **/zz-*.test.ts
+
+# bun
+.bun
