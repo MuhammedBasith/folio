@@ -39,7 +39,10 @@ function DialogOverlay({
     <DialogPrimitive.Overlay
       data-slot="dialog-overlay"
       className={cn(
-        "fixed inset-0 isolate z-50 bg-(--n-950)/20 duration-200 supports-backdrop-filter:backdrop-blur-[2px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        // The scrim is a semantic token, not `--n-950`: on a dark page a
+        // 20% black wash is invisible and the dialog appears to float on
+        // nothing. It has to get heavier when the ground gets darker.
+        "fixed inset-0 isolate z-50 bg-scrim duration-200 supports-backdrop-filter:backdrop-blur-[3px] data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -61,7 +64,10 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-5 rounded-xl border border-line bg-surface-overlay p-5 text-body-sm text-ink shadow-overlay outline-none sm:max-w-md " +
+          // A modal is not anchored to a trigger, so it scales from its own
+          // centre. Popovers are the ones that should grow from where they
+          // were opened; a dialog that flies out of a corner reads as an error.
+          "fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border border-line bg-surface-overlay p-5 text-body-sm text-ink shadow-overlay outline-none sm:max-w-md " +
             "ease-out-quint data-open:animate-in data-open:fade-in-0 data-open:zoom-in-97 data-open:duration-200 " +
             "data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-97 data-closed:duration-150",
           className
@@ -71,13 +77,18 @@ function DialogContent({
         {children}
         {showCloseButton && (
           <DialogPrimitive.Close data-slot="dialog-close" asChild>
+            {/*
+              28px, not 40px. This is a dismissal, the least important control
+              in the dialog, and at icon size it was a bigger target than the
+              primary action. The hover wash is the right idea; it just needs to
+              be the size of the glyph rather than the size of a button.
+            */}
             <Button
               variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon"
+              className="absolute top-2.5 right-2.5 text-ink-faint hover:text-ink"
+              size="icon-sm"
             >
-              <XIcon
-              />
+              <XIcon className="size-3.5" />
               <span className="sr-only">Close</span>
             </Button>
           </DialogPrimitive.Close>
