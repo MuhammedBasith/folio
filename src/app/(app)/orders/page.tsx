@@ -1,19 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/money";
 import { AgeingReport } from "@/components/orders/ageing-report";
-import { OrdersTable } from "@/components/orders/orders-table";
-import { OrderSearch } from "@/components/orders/order-search";
-import { StatusFilter } from "@/components/orders/status-filter";
-import {
-  ORDER_STATUSES,
-  type OrderStatus,
-  compareByUrgency,
-  isOrderStatus,
-} from "@/lib/domain/orders";
-import { STATUS_LABELS, pluralise } from "@/lib/format";
+import { OrdersBrowser } from "@/components/orders/orders-browser";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/domain/orders";
+import { pluralise } from "@/lib/format";
 import { sumCents } from "@/lib/money";
 import { requireUser } from "@/server/auth/current-user";
 import { listOrders } from "@/server/repositories/orders";
@@ -29,23 +22,26 @@ export const metadata: Metadata = {
  * A Server Component reading the repository directly. No client-side fetch, no
  * loading spinner, no waterfall: the HTML arrives with the numbers in it.
  *
+ * IT NO LONGER READS `searchParams`, AND THAT IS THE POINT. Filtering and
+ * search used to live in the URL and be applied here, so every tab press
+ * re-ran this component: another database query, another render, another RSC
+ * payload, to hide rows that were already on screen. It now hands the full list
+ * to `OrdersBrowser`, which filters in the browser and keeps the URL in sync
+ * through the history API. This page renders once per visit.
+ *
+ * Everything above the browser is a figure over ALL orders, which is why it
+ * belongs here rather than there: the summary and the ageing profile do not
+ * change when you look at one status, and it would be actively misleading if
+ * they did.
+ *
  * `asOf` is captured ONCE and threaded through every derivation on the page, so
  * the status badge and the "5 days overdue" text beside it are computed from
  * the same instant. Letting each call default to its own `new Date()` means a
  * request that straddles midnight can render a badge that contradicts the words
  * next to it.
- *
- * All orders load in one query and both filters apply in memory, because the
- * summary figures and the per-status counts need the full set anyway. Doing it
- * in SQL would mean either several round trips or losing the counts.
  */
-export default async function OrdersPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ status?: string; q?: string }>;
-}) {
+export default async function OrdersPage() {
   const session = await requireUser();
-  const { status, q } = await searchParams;
 
   const asOf = new Date();
   const orders = await listOrders(session.userId, {}, asOf);
@@ -57,27 +53,6 @@ export default async function OrdersPage({
     },
     {} as Record<OrderStatus, number>,
   );
-
-  const activeStatus = isOrderStatus(status) ? status : undefined;
-  const query = (q ?? "").trim().toLowerCase();
-
-  const visible = orders
-    .filter((order) => {
-      if (activeStatus && order.status !== activeStatus) return false;
-      if (!query) return true;
-
-      // Customer and reference only. Searching the notes as well would produce
-      // hits the user cannot see anywhere in the row that matched, which reads
-      // as a bug rather than as a feature.
-      return (
-        order.customer.toLowerCase().includes(query) ||
-        order.reference.toLowerCase().includes(query)
-      );
-    })
-    // Sorted for reading, not for storage. The repository returns due date
-    // ascending, which is stable and correct for the API and the CSV export but
-    // opens this page on an order that settled two months ago.
-    .sort(compareByUrgency);
 
   const outstandingCents = sumCents(orders.map((order) => order.dueCents));
   const overdueCents = sumCents(
@@ -99,27 +74,12 @@ export default async function OrdersPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <a
-              href={
-                activeStatus
-                  ? `/api/orders/export?status=${activeStatus}`
-                  : "/api/orders/export"
-              }
-              download
-            >
-              Export
-              <ArrowUpRight aria-hidden className="size-3.5" />
-            </a>
-          </Button>
-          <Button asChild size="sm">
-            <Link href="/orders/new">
-              <Plus aria-hidden className="size-3.5" />
-              New order
-            </Link>
-          </Button>
-        </div>
+        <Button asChild size="sm">
+          <Link href="/orders/new">
+            <Plus aria-hidden className="size-3.5" />
+            New order
+          </Link>
+        </Button>
       </div>
 
       {/* ---- Summary ----
@@ -128,9 +88,7 @@ export default async function OrdersPage({
           block split by hairlines, which said "these are three columns of one
           table". They are not: outstanding, overdue and collected are three
           independent readings that happen to sit together, and one of them
-          turns red on its own. Separating them lets each carry its own edge and
-          its own state, and it matches the way the rest of the product treats a
-          card. */}
+          turns red on its own. */}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Metric
           label="Outstanding"
@@ -162,46 +120,11 @@ export default async function OrdersPage({
         />
       </div>
 
-      {/* ---- Ageing ----
-          Renders nothing when everything is inside its terms, so it appears
+      {/* Renders nothing when everything is inside its terms, so it appears
           only on the days it has something to say. */}
       <AgeingReport orders={orders} asOf={asOf} />
 
-      {/* ---- Filter and search, on one line ---- */}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <StatusFilter counts={counts} total={orders.length} />
-        <OrderSearch />
-      </div>
-
-      <div className="mt-3">
-        {visible.length > 0 ? (
-          <OrdersTable orders={visible} />
-        ) : orders.length === 0 ? (
-          <EmptyState
-            title="No orders yet"
-            body="Create one and the total, status and amount due are worked out for you."
-            action={
-              <Button asChild size="sm">
-                <Link href="/orders/new">Create an order</Link>
-              </Button>
-            }
-          />
-        ) : (
-          <EmptyState
-            title={query ? `Nothing matches “${q}”` : "Nothing here"}
-            body={
-              query
-                ? "Search looks at the customer name and the reference."
-                : `No orders are ${STATUS_LABELS[activeStatus!].toLowerCase()}.`
-            }
-            action={
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/orders">Clear filters</Link>
-              </Button>
-            }
-          />
-        )}
-      </div>
+      <OrdersBrowser orders={orders} counts={counts} />
     </main>
   );
 }
@@ -231,16 +154,14 @@ function Metric({
   share: number;
   tone?: "neutral" | "alert" | "positive";
 }) {
-  const live = cents > 0;
-  const resolved = live ? tone : "neutral";
+  const resolved = cents > 0 ? tone : "neutral";
 
   return (
     <div
       className={cn(
         "rounded-xl border bg-surface-raised px-4 py-3.5",
         // The border carries the state too, not just the figure. A card that is
-        // entirely neutral except for one red number reads as a typo; tinting
-        // the edge makes the whole card the alert.
+        // entirely neutral except for one red number reads as a typo.
         resolved === "alert"
           ? "border-status-overdue-line"
           : resolved === "positive"
@@ -274,26 +195,6 @@ function Metric({
       </div>
 
       <p className="mt-2 text-caption text-ink-faint">{note}</p>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  body,
-  action,
-}: {
-  title: string;
-  body: string;
-  action: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-dashed border-line bg-surface-raised px-6 py-14 text-center">
-      <h2 className="font-heading text-display-sm text-ink">{title}</h2>
-      <p className="mx-auto mt-1.5 max-w-prose text-body-sm text-ink-muted">
-        {body}
-      </p>
-      <div className="mt-5 flex justify-center">{action}</div>
     </div>
   );
 }
