@@ -1,0 +1,102 @@
+// Orders and settlements.
+//
+// Money is stored as INTEGER MINOR UNITS (cents) everywhere, never as a float
+// or a Decimal. Three payments of 33.33 against a 100.00 order must sum to
+// exactly the order total or the status never reaches `paid`; binary floating
+// point cannot promise that, and Decimal invites accidental float coercion at
+// the JS boundary. Integers make the equality exact by construction.
+//
+// Derived values (order total, amount paid, amount due, status) are deliberately
+// NOT columns. Storing them means a line item edit silently invalidates the
+// total, and `overdue` would go stale the moment the clock passes midnight
+// without anything having been written. They are computed on read instead.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// Prisma 7 moved connection URLs out of the schema. They now live in
+// `prisma.config.ts` for the CLI, and reach the client through a driver
+// adapter. See `src/server/db/client.ts`.
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("users")
+}
+
+model Order {
+  id       String @id @default(cuid())
+  // Human-facing reference, unique per user. Shown in the UI so a customer and
+  // an owner can talk about "ORD-0007" rather than a cuid.
+  reference String
+  // Plain string by design: the brief models customers as a name on an order,
+  // not as an account. There is no customer login anywhere in this product.
+  customer String
+  dueDate  DateTime @db.Date
+  notes    String?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  lineItems LineItem[]
+  payments  Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Tenant isolation is enforced in every query by owner, so the composite
+  // index matches the real access pattern rather than indexing owner alone.
+  @@unique([ownerId, reference])
+  @@index([ownerId, dueDate])
+  @@index([ownerId, createdAt])
+  @@map("orders")
+}
+
+model LineItem {
+  id          String @id @default(cuid())
+  description String
+  quantity    Int
+  // Minor units. 500.00 is stored as 50000.
+  unitPriceCents Int
+
+  // Preserves the order the user entered lines in; without it, row order is
+  // whatever the planner returns.
+  position Int
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId, position])
+  @@map("line_items")
+}
+
+model Payment {
+  id String @id @default(cuid())
+  // Minor units, always positive. Refunds, if ever added, belong in their own
+  // entity rather than as a negative payment, so `sum(payments)` stays
+  // meaningful as "money received".
+  amountCents Int
+  paidOn      DateTime @db.Date
+  note        String?
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId, paidOn])
+  @@map("payments")
+}
