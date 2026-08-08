@@ -65,8 +65,8 @@ export function AppHeader({ email }: { email: string }) {
           className="group inline-flex min-h-8 items-center gap-2.5 text-ink"
           aria-label="Folio home"
         >
-          <Mark className="size-4 transition-transform duration-280 ease-spring group-hover:rotate-90" />
-          <span className="font-heading text-[1.125rem] leading-none tracking-[-0.022em]">
+          <Mark className="size-5 transition-transform duration-280 ease-spring group-hover:rotate-90" />
+          <span className="font-heading text-[1.375rem] leading-none tracking-[-0.026em]">
             Folio
           </span>
         </Link>
