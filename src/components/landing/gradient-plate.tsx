@@ -38,29 +38,46 @@ import { cn } from "@/lib/utils";
  */
 
 /**
- * Concentrated core, long tail, clear by 70%.
+ * Concentrated core, clear by 70% of the half-dimension.
  *
- * The core is small on purpose. A mask that starts fading immediately spreads
- * the light thinly over the whole plate and washes the section out; keeping it
- * opaque through the middle fifth is what gives the glow somewhere to actually
- * be bright.
+ * `farthest-side` is doing real work here and its absence was why the earlier
+ * tuning kept slipping. Without a size keyword a radial gradient defaults to
+ * `farthest-corner`, which scales the ellipse to reach the CORNER of the box:
+ * the vertical radius becomes about 1.41x the half-height, so a stop at 70%
+ * lands at 99% of the way to the top and bottom edges. That is a one percent
+ * margin, which is no margin, and it is why the plate kept showing its own
+ * rectangle at some sizes and not others.
+ *
+ * `farthest-side` makes the radii exactly the half-width and half-height, so
+ * "70%" means 70% of the distance to the edge in every direction and there is a
+ * real 30% band of transparency before the box runs out. Deterministic, at any
+ * aspect ratio.
+ *
+ * The vertical position is a parameter because a plate anchored to the bottom
+ * of the page wants its bright core low and its falloff reaching up, which a
+ * centred ellipse cannot do.
  */
-const FALLOFF =
-  "radial-gradient(ellipse at center, black 0%, black 20%, transparent 70%)";
+function falloff(position: string): string {
+  return `radial-gradient(ellipse farthest-side at ${position}, black 0%, black 20%, transparent 70%)`;
+}
 
 export function GradientPlate({
   src,
   className,
   blur = "blur-3xl",
   opacity = "opacity-60 dark:opacity-40",
+  origin = "50% 50%",
   priority,
 }: {
   src: string;
   className?: string;
   blur?: string;
   opacity?: string;
+  /** Where the bright core sits inside the plate, as a mask position. */
+  origin?: string;
   priority?: boolean;
 }) {
+  const mask = falloff(origin);
   return (
     <div
       aria-hidden
@@ -69,8 +86,8 @@ export function GradientPlate({
       <div
         className={cn("relative h-full w-full", blur, opacity)}
         style={{
-          maskImage: FALLOFF,
-          WebkitMaskImage: FALLOFF,
+          maskImage: mask,
+          WebkitMaskImage: mask,
           maskRepeat: "no-repeat",
           WebkitMaskRepeat: "no-repeat",
         }}
