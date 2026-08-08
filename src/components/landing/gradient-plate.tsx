@@ -43,10 +43,32 @@ export function GradientPlate({
       <div
         className={cn("relative h-full w-full", blur, opacity)}
         style={{
+          /**
+           * `no-repeat` IS THE WHOLE FIX, and its absence was a real bug.
+           *
+           * `mask-repeat` defaults to `repeat`. `filter: blur()` spreads the
+           * plate well past its own border box, and everything outside that box
+           * was being masked by a TILED copy of this gradient rather than by
+           * nothing at all. The result was a straight edge exactly on the box
+           * boundary, in every direction: a hard horizontal line across the top
+           * of the footer and two vertical seams down the hero.
+           *
+           * With no-repeat, anywhere outside the mask image is simply
+           * transparent, so the blur fades into the page instead of running
+           * into the next tile.
+           *
+           * The falloff also starts sooner and ends later than it did. A mask
+           * that goes from opaque to clear over 40% of the radius still has a
+           * perceptible boundary on a large plate; over 75% it has none.
+           */
           maskImage:
-            "radial-gradient(ellipse at center, black 32%, transparent 74%)",
+            "radial-gradient(ellipse at center, black 12%, transparent 88%)",
           WebkitMaskImage:
-            "radial-gradient(ellipse at center, black 32%, transparent 74%)",
+            "radial-gradient(ellipse at center, black 12%, transparent 88%)",
+          maskRepeat: "no-repeat",
+          WebkitMaskRepeat: "no-repeat",
+          maskSize: "100% 100%",
+          WebkitMaskSize: "100% 100%",
         }}
       >
         <Image
