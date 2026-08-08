@@ -296,3 +296,46 @@ export function validatePayment({
 export function isOrderEditable(paymentCount: number): boolean {
   return paymentCount === 0;
 }
+
+/**
+ * Sort order for a list somebody is going to act on.
+ *
+ * Due date ascending is the obvious answer and it is wrong, because it puts
+ * orders that settled two months ago at the top of the page. The list exists to
+ * answer "what needs chasing", so it is sorted by how much attention each row
+ * wants:
+ *
+ *   1. overdue, longest overdue first  the money you are least likely to get
+ *   2. part paid, then pending          live, ordered by what is due soonest
+ *   3. paid, most recent first          done, kept for reference
+ *
+ * Part paid outranks pending inside the live group because someone has already
+ * engaged with it; a half-settled order that goes quiet is worth a call sooner
+ * than one that is not due yet.
+ *
+ * This is presentation, not domain truth, which is why it takes a summary
+ * rather than living in the repository: the API and the CSV export keep the
+ * stable due-date ordering, where a predictable sequence matters more than a
+ * helpful one.
+ */
+const URGENCY_RANK: Record<OrderStatus, number> = {
+  overdue: 0,
+  partially_paid: 1,
+  pending: 2,
+  paid: 3,
+};
+
+export function compareByUrgency(
+  a: { status: OrderStatus; dueDate: string },
+  b: { status: OrderStatus; dueDate: string },
+): number {
+  const rank = URGENCY_RANK[a.status] - URGENCY_RANK[b.status];
+  if (rank !== 0) return rank;
+
+  // Within paid, newest first: the useful question about a settled order is
+  // "what did we just close", not "what did we close in March".
+  if (a.status === "paid") return b.dueDate.localeCompare(a.dueDate);
+
+  // Everywhere else, soonest (or longest overdue) first.
+  return a.dueDate.localeCompare(b.dueDate);
+}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MIN_PAYMENT_CENTS,
+  compareByUrgency,
   calculateAmountPaidCents,
   calculateLineTotalCents,
   calculateOrderTotalCents,
@@ -431,5 +432,56 @@ describe("the full payment lifecycle", () => {
     if (result.ok) throw new Error("unreachable");
     expect(result.code).toBe("ORDER_ALREADY_SETTLED");
     expect(result.message).toMatch(/already fully paid/i);
+  });
+});
+
+describe("compareByUrgency", () => {
+  /**
+   * Deliberately shuffled, and every status appears twice so the tie-break
+   * inside a group is exercised rather than assumed.
+   */
+  const orders = [
+    { id: "paid-old", status: "paid" as const, dueDate: "2026-01-10" },
+    { id: "pending-late", status: "pending" as const, dueDate: "2026-09-01" },
+    { id: "overdue-recent", status: "overdue" as const, dueDate: "2026-07-20" },
+    { id: "part-late", status: "partially_paid" as const, dueDate: "2026-09-05" },
+    { id: "paid-new", status: "paid" as const, dueDate: "2026-08-01" },
+    { id: "overdue-ancient", status: "overdue" as const, dueDate: "2026-02-11" },
+    { id: "pending-soon", status: "pending" as const, dueDate: "2026-08-20" },
+    { id: "part-soon", status: "partially_paid" as const, dueDate: "2026-08-15" },
+  ];
+
+  const sorted = () => [...orders].sort(compareByUrgency).map((o) => o.id);
+
+  it("puts overdue first, longest overdue at the very top", () => {
+    expect(sorted().slice(0, 2)).toEqual(["overdue-ancient", "overdue-recent"]);
+  });
+
+  it("ranks part paid above pending, since someone already engaged with it", () => {
+    const order = sorted();
+    expect(order.indexOf("part-soon")).toBeLessThan(order.indexOf("pending-soon"));
+    expect(order.indexOf("part-late")).toBeLessThan(order.indexOf("pending-soon"));
+  });
+
+  it("sorts live orders by what is due soonest", () => {
+    const order = sorted();
+    expect(order.indexOf("part-soon")).toBeLessThan(order.indexOf("part-late"));
+    expect(order.indexOf("pending-soon")).toBeLessThan(order.indexOf("pending-late"));
+  });
+
+  it("sinks settled orders to the bottom, most recent first", () => {
+    expect(sorted().slice(-2)).toEqual(["paid-new", "paid-old"]);
+  });
+
+  it("is a total order: sorting twice does not move anything", () => {
+    const once = [...orders].sort(compareByUrgency);
+    const twice = [...once].sort(compareByUrgency);
+    expect(twice.map((o) => o.id)).toEqual(once.map((o) => o.id));
+  });
+
+  it("returns 0 for two orders that are genuinely equivalent", () => {
+    const a = { status: "pending" as const, dueDate: "2026-08-20" };
+    const b = { status: "pending" as const, dueDate: "2026-08-20" };
+    expect(compareByUrgency(a, b)).toBe(0);
   });
 });
