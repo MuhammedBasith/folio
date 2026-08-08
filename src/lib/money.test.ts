@@ -83,6 +83,23 @@ describe("parseAmountToCents", () => {
     expect(expectParsed("$1,234.56")).toBe(123_456);
     expect(expectParsed("  1000.00  ")).toBe(100_000);
     expect(expectParsed("1,000,000")).toBe(100_000_000);
+    expect(expectParsed("1,000,000.99")).toBe(100_000_099);
+  });
+
+  /**
+   * Continental notation.
+   *
+   * "1,50" means one fifty across most of Europe. Stripping commas blindly, as
+   * most implementations do, turns it into 150: a hundredfold error that
+   * nothing downstream can catch, because 150 is a perfectly valid amount.
+   */
+  it("refuses commas that are not thousands separators", () => {
+    expect(expectRejected("1,50")).toMatch(/thousands/i);
+    expect(expectRejected("1,5")).toMatch(/thousands/i);
+    expect(expectRejected("12,34")).toMatch(/thousands/i);
+    expect(expectRejected("1,0000")).toMatch(/thousands/i);
+    expect(expectRejected("1000,000,000")).toMatch(/thousands/i);
+    expect(expectRejected(",000")).toMatch(/thousands/i);
   });
 
   it("accepts a leading decimal point", () => {
@@ -107,14 +124,16 @@ describe("parseAmountToCents", () => {
     expect(expectRejected("   ")).toMatch(/enter an amount/i);
   });
 
-  it("rejects input that is only presentational characters", () => {
+  it("rejects input containing no digits at all", () => {
+    // "Enter an amount" is more use here than a complaint about format: there
+    // is nothing to correct, only something to type.
     expect(expectRejected("$")).toMatch(/enter an amount/i);
     expect(expectRejected(",")).toMatch(/enter an amount/i);
+    expect(expectRejected(".")).toMatch(/enter an amount/i);
   });
 
   it("rejects malformed numbers", () => {
     expect(expectRejected("abc")).toMatch(/valid amount/i);
-    expect(expectRejected(".")).toMatch(/valid amount/i);
     expect(expectRejected("1.2.3")).toMatch(/valid amount/i);
     expect(expectRejected("1000.")).toMatch(/valid amount/i);
     expect(expectRejected("1e5")).toMatch(/valid amount/i);

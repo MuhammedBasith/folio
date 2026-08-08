@@ -59,12 +59,46 @@ export function parseAmountToCents(input: string): MoneyParseResult {
     return { ok: false, error: "Enter an amount." };
   }
 
-  // Strip presentational characters only. Anything else surviving to the regex
-  // below is a genuine format error.
-  const cleaned = raw
-    .replace(CURRENCY_SYMBOL, "")
-    .replace(/,/g, "")
-    .replace(/\s/g, "");
+  const withoutSymbol = raw.replace(CURRENCY_SYMBOL, "").replace(/\s/g, "");
+
+  /**
+   * Input that is ONLY punctuation gets "enter an amount": there is nothing to
+   * correct, only something to type. Anything else the user actually typed
+   * falls through to the format message, which is more use to them than being
+   * told to enter an amount they believe they just entered.
+   */
+  if (withoutSymbol.length === 0 || /^[.,]+$/.test(withoutSymbol)) {
+    return { ok: false, error: "Enter an amount." };
+  }
+
+  /**
+   * Commas must be in thousands positions.
+   *
+   * Stripping them unconditionally is what most implementations do, and it
+   * silently misreads continental notation: "1,50" means one euro fifty in most
+   * of Europe, and blind stripping turns it into 150, a hundredfold error that
+   * no validation downstream can detect because 150 is a perfectly valid
+   * amount.
+   *
+   * Rather than guess which convention the user meant, groups are required to
+   * be exactly three digits. "1,000.50" is accepted, "1,50" is refused with a
+   * message that says what is wrong.
+   */
+  if (withoutSymbol.includes(",")) {
+    const wellGrouped = /^\d{1,3}(,\d{3})*(\.\d+)?$/.test(withoutSymbol);
+
+    if (!wellGrouped) {
+      return {
+        ok: false,
+        error:
+          "Use a full stop for decimals and commas only between thousands, for example 1,250.50.",
+      };
+    }
+  }
+
+  // Presentational characters removed, having first confirmed they were used
+  // presentationally.
+  const cleaned = withoutSymbol.replace(/,/g, "");
 
   if (cleaned.length === 0) {
     return { ok: false, error: "Enter an amount." };
