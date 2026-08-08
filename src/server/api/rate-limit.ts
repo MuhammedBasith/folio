@@ -73,8 +73,17 @@ export interface RateLimitRule {
 export const RULES = {
   /** Password guessing. Tight: the attacker only needs to be lucky once. */
   login: { limit: 10, windowMs: 15 * 60_000 },
-  /** Account creation. Low, because a human does this approximately once. */
-  signup: { limit: 5, windowMs: 60 * 60_000 },
+  /**
+   * Account creation.
+   *
+   * Ten, not five. REJECTED ATTEMPTS COUNT, because the limit is applied before
+   * the handler runs and a limiter that only counts successes is trivially
+   * defeated. That makes a tight number unfair: someone who picks a short
+   * password twice and mistypes their email once has already spent three of
+   * their budget without creating anything. Ten still stops bulk creation and
+   * leaves room to fumble.
+   */
+  signup: { limit: 10, windowMs: 60 * 60_000 },
   /**
    * Authenticated writes. Generous: this exists to stop a runaway script, not
    * to police anyone's usage of their own ledger.
@@ -152,17 +161,39 @@ export function resetRateLimits() {
 }
 
 /**
+ * Whether to believe the client address in the request headers.
+ *
+ * THIS DEFAULTS TO TRUE, AND THAT IS A REAL DECISION WITH A REAL TRADE-OFF.
+ *
+ * Behind a proxy that sets `x-forwarded-for` (Vercel, Cloudflare, any sane
+ * nginx) the header is authoritative: the platform overwrites whatever the
+ * client sent, so it cannot be spoofed. Refusing to trust it there would put
+ * every user on earth in one bucket, and ten logins per fifteen minutes shared
+ * globally is not a security control, it is an outage.
+ *
+ * Deployed with NO proxy in front, the opposite is true: anyone can send their
+ * own `x-forwarded-for` and mint a fresh bucket per request, which defeats the
+ * limiter completely. That deployment must set `TRUST_PROXY_HEADERS=false`, and
+ * the limiter then falls back to one shared bucket, which is the correct
+ * behaviour when there is genuinely no way to tell callers apart.
+ *
+ * Stating it as a flag rather than assuming makes the assumption visible in the
+ * environment rather than buried in a helper.
+ */
+function trustsProxyHeaders(): boolean {
+  return process.env.TRUST_PROXY_HEADERS !== "false";
+}
+
+/**
  * The caller's identity for rate limiting purposes.
  *
- * `x-forwarded-for` is only trustworthy behind a proxy that sets it, which is
- * the case on Vercel and on any sane reverse proxy, and the LEFTMOST entry is
- * the client. Taking the last entry would key every request to the proxy and
- * limit the whole world together.
- *
- * If no header is present (a direct connection in local development) everything
- * shares one bucket, which is correct: there is only one client.
+ * The LEFTMOST entry of `x-forwarded-for` is the original client. Taking the
+ * last would key every request to the proxy nearest the server and limit
+ * everybody together.
  */
 export function clientKey(request: Request, scope: string): string {
+  if (!trustsProxyHeaders()) return `${scope}:untrusted`;
+
   const forwarded = request.headers.get("x-forwarded-for");
   const ip =
     forwarded?.split(",")[0]?.trim() ||

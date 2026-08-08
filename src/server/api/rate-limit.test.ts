@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   RULES,
   clientKey,
@@ -87,10 +87,11 @@ describe("the rules that ship", () => {
     expect(RULES.login.windowMs).toBeGreaterThanOrEqual(5 * 60_000);
   });
 
-  it("keeps signup lower than login", () => {
-    // Creating accounts is rarer than mistyping a password, so it should never
-    // be the more permissive of the two.
-    expect(RULES.signup.limit).toBeLessThan(RULES.login.limit);
+  it("gives signup room for rejected attempts", () => {
+    // Rejected attempts count, because the limit runs before the handler. A
+    // person who picks a short password twice and mistypes their email once has
+    // already spent three, so the budget has to absorb honest fumbling.
+    expect(RULES.signup.limit).toBeGreaterThanOrEqual(8);
   });
 
   it("leaves authenticated writes generous", () => {
@@ -162,5 +163,42 @@ describe("clientKey", () => {
     expect(clientKey(request(headers), "login")).not.toBe(
       clientKey(request(headers), "signup"),
     );
+  });
+
+  /**
+   * The header is only believable behind a proxy that overwrites it. Deployed
+   * without one, anyone could mint a fresh bucket per request and the limiter
+   * would do nothing at all, so there has to be a way to say so.
+   */
+  describe("when proxy headers are not trusted", () => {
+    const previous = process.env.TRUST_PROXY_HEADERS;
+
+    beforeEach(() => {
+      process.env.TRUST_PROXY_HEADERS = "false";
+    });
+
+    afterEach(() => {
+      if (previous === undefined) delete process.env.TRUST_PROXY_HEADERS;
+      else process.env.TRUST_PROXY_HEADERS = previous;
+    });
+
+    it("ignores a client-supplied address entirely", () => {
+      const a = clientKey(request({ "x-forwarded-for": "203.0.113.7" }), "login");
+      const b = clientKey(request({ "x-forwarded-for": "198.51.100.1" }), "login");
+
+      expect(a).toBe(b);
+    });
+
+    it("still keeps scopes apart", () => {
+      expect(clientKey(request({}), "login")).not.toBe(
+        clientKey(request({}), "signup"),
+      );
+    });
+
+    it("collapses to one bucket, which is the honest fallback", () => {
+      // Not "no limit". With no way to tell callers apart, one shared budget is
+      // the only truthful answer, and it is still a limit.
+      expect(clientKey(request({}), "login")).toBe("login:untrusted");
+    });
   });
 });
