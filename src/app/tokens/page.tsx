@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Design tokens",
-  description: "Living reference for the token system this product is built on.",
+  description: "Living reference for the token system Tally is built on.",
 };
 
 /* ------------------------------------------------------------------ */
@@ -94,12 +94,13 @@ export default function TokensPage() {
       <Section
         eyebrow="Typography"
         title="Two families, one job each"
-        note="Instrument Serif carries display sizes and nothing else. Inter takes every reading and interface size. Body sizes carry slight negative tracking because Inter is drawn loose at UI scale."
+        note="Instrument Serif carries display sizes and nothing else. Inter takes every reading and interface size. The scale is deliberately small: body is 14px and section headings 17px, because a dense tool has no room for a 36px heading."
       >
         <div className="space-y-8">
           <div className="border-b border-line-subtle pb-6">
             <p className="mb-3 text-caption text-ink-faint">
-              text-display-hero · Instrument Serif · clamp(2.75rem, 7vw, 4.5rem)
+              text-display-hero · Instrument Serif · clamp(2.125rem, 4.6vw,
+              3.25rem)
             </p>
             <p className="font-heading text-display-hero text-ink">
               Know who owes you
