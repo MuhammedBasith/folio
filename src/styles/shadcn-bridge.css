@@ -43,9 +43,8 @@
   --ring: var(--focus-ring);
 
   /**
-   * Charts are unused in this product (the assignment needs no visualisation)
-   * but shadcn references them, so they resolve to the neutral ramp rather
-   * than to shadcn's default multi-hue set.
+   * Charts are unused in this product, but shadcn references them, so they
+   * resolve to the neutral ramp rather than shadcn's default multi-hue set.
    */
   --chart-1: var(--n-900);
   --chart-2: var(--n-700);

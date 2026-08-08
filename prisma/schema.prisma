@@ -1,4 +1,4 @@
-// Orders and settlements.
+// Tally: orders and settlements.
 //
 // Money is stored as INTEGER MINOR UNITS (cents) everywhere, never as a float
 // or a Decimal. Three payments of 33.33 against a 100.00 order must sum to
@@ -40,8 +40,8 @@ model Order {
   // Human-facing reference, unique per user. Shown in the UI so a customer and
   // an owner can talk about "ORD-0007" rather than a cuid.
   reference String
-  // Plain string by design: the brief models customers as a name on an order,
-  // not as an account. There is no customer login anywhere in this product.
+  // Plain string by design: a customer is a name on an order, not an account.
+  // There is no customer login anywhere in this product.
   customer String
   dueDate  DateTime @db.Date
   notes    String?

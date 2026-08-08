@@ -7,8 +7,7 @@ import { formatCents } from "@/lib/money";
 /**
  * GET /api/orders/export?status=...&from=YYYY-MM-DD&to=YYYY-MM-DD
  *
- * CSV export, one of the brief's stretch goals. Filtered by due date range and
- * optionally by status.
+ * CSV export, filtered by due date range and optionally by status.
  *
  * Amounts are written as plain decimals with no currency symbol and no thousands
  * separators, because a spreadsheet has to parse them as numbers. That is the

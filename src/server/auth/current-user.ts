@@ -15,8 +15,8 @@ import {
  *
  * The REST API is not bypassed logic, it is a second consumer of the same
  * repository and domain layer. Reads go straight to the repository; every
- * mutation in the UI goes through the REST API, so the endpoints a reviewer
- * exercises with curl are the same ones the product itself uses to write.
+ * mutation in the UI goes through the REST API, so the endpoints an external
+ * client would call are the same ones the product itself uses to write.
  */
 export async function getCurrentUser(): Promise<SessionPayload | null> {
   const token = await readSessionCookie();

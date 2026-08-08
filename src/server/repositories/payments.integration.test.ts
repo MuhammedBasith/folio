@@ -31,7 +31,7 @@ beforeEach(async () => {
   otherOwnerId = other.id;
 });
 
-/** A $1,000 order: 2 x $500, matching the brief's worked example. */
+/** A $1,000 order: 2 x $500. */
 async function createThousandDollarOrder(userId = ownerId) {
   return createOrder(userId, {
     customer: "Acme Corp",
@@ -59,7 +59,7 @@ async function expectApiError(promise: Promise<unknown>): Promise<ApiError> {
   throw new Error("Expected the call to reject, but it resolved.");
 }
 
-describe("the brief's sample scenario, over the real database", () => {
+describe("the full payment lifecycle, over the real database", () => {
   it("runs 400 then 600 then rejects a further 1", async () => {
     const order = await createThousandDollarOrder();
     expect(order.totalCents).toBe(100_000);

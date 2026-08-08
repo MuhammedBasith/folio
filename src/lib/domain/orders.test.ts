@@ -165,7 +165,7 @@ describe("deriveOrderStatus", () => {
     ).toBe("overdue");
   });
 
-  /* ---- precedence, the part the brief asks to be documented ---- */
+  /* ---- precedence, where the four states overlap ---- */
 
   it("prefers overdue over partially_paid when both are true", () => {
     expect(
@@ -311,7 +311,8 @@ describe("validatePayment", () => {
     if (result.ok) throw new Error("unreachable");
     expect(result.code).toBe("PAYMENT_EXCEEDS_BALANCE");
     expect(result.maxAllowedCents).toBe(60_000);
-    // The brief asks for the maximum allowed to appear in the message itself.
+    // The maximum allowed must appear in the message itself, not only in the
+    // structured details, so a human reading the error knows what to type.
     expect(result.message).toContain("$600.00");
   });
 
@@ -388,10 +389,10 @@ describe("isOrderStatus", () => {
 });
 
 /**
- * The brief's own worked example, end to end through the domain layer.
- * If this passes, the core of the assignment is correct.
+ * The canonical flow, end to end through the domain layer: a $1,000 order part
+ * paid, settled, and then protected from a further payment.
  */
-describe("the brief's sample scenario", () => {
+describe("the full payment lifecycle", () => {
   const lineItems = [{ quantity: 2, unitPriceCents: 50_000 }];
   const dueDate = date("2026-08-15");
   const asOf = at("2026-08-10T12:00:00.000Z");
@@ -419,7 +420,7 @@ describe("the brief's sample scenario", () => {
     expect(summary.status).toBe("paid");
   });
 
-  it("step 4: a further $1 is rejected with the maximum stated", () => {
+  it("step 4: a further $1 is rejected, with the reason stated", () => {
     const result = validatePayment({
       amountCents: 100,
       totalCents: 100_000,

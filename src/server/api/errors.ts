@@ -4,10 +4,9 @@
  * Every failure the API can produce is one of these codes. Two rules:
  *
  *   1. The code is stable and machine-readable, so a client can branch on it.
- *   2. The message is written for a human and says what to do next. The brief
- *      grades "validation errors with resolution hints", so "Invalid payment"
- *      is a failing answer and "the most you can record is $600.00" is a
- *      passing one.
+ *   2. The message is written for a human and says what to do next.
+ *      "Invalid payment" tells someone nothing they can act on; "the most you
+ *      can record is $600.00" tells them exactly what to type.
  */
 
 export const API_ERROR_CODES = [

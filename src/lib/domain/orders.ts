@@ -55,7 +55,7 @@ export interface OrderTotals {
  *
  * `quantity` is a whole number and `unitPriceCents` is an integer, so the
  * product is exact. There is no rounding step here because there is nothing to
- * round: this assignment has no tax and no discount, and both operands are
+ * round: there is no tax and no discount here, and both operands are
  * already integers.
  */
 export function calculateLineTotalCents(line: LineItemAmounts): number {
@@ -120,8 +120,7 @@ export function calculateOrderTotals(
  * as midnight UTC. Comparing that against a raw `new Date()` would make an
  * order tip into `overdue` at midnight UTC rather than at the end of its due
  * day. Reducing both sides to a calendar key removes the time component from
- * the comparison entirely, so the rule reads exactly as the brief states it:
- * past the due DATE.
+ * the comparison entirely, so the rule means what it says: past the due DATE.
  *
  * Consequence, documented in the README: "today" is UTC today. For a single
  * user in one timezone that is at most a few hours of skew on the day an order
@@ -154,7 +153,7 @@ export interface DeriveStatusInput {
  *   3. Something has been paid  -> partially_paid
  *   4. Otherwise                -> pending
  *
- * Consequences worth stating, both required by the brief:
+ * Two consequences worth stating:
  *
  *   - An order that was overdue and has since been settled reads `paid`, not
  *     `overdue`. Nothing is owed, so nothing can be late.
@@ -212,7 +211,7 @@ export function summariseOrder(
 /* Payment validation                                                  */
 /* ------------------------------------------------------------------ */
 
-/** Smallest recordable payment: one cent, per the brief's "amount >= 0.01". */
+/** Smallest recordable payment: one cent. */
 export const MIN_PAYMENT_CENTS = 1;
 
 export type PaymentRejectionCode =
@@ -233,10 +232,9 @@ export type PaymentValidation =
 /**
  * Decides whether a payment may be recorded.
  *
- * The brief asks for over-payment to be rejected with "a clear, actionable
- * error (e.g. include the maximum allowed amount)", so every rejection carries
- * `maxAllowedCents` and a message that states it. "Invalid payment" tells the
- * user nothing they can act on.
+ * Every rejection carries `maxAllowedCents` and a message that states it,
+ * because "invalid payment" tells the user nothing they can act on whereas
+ * "the most you can record is $600.00" tells them what to type.
  *
  * This function is pure and therefore not a defence against the concurrent
  * double-payment race on its own: two callers can both pass it with stale
@@ -288,10 +286,10 @@ export function validatePayment({
 /**
  * Whether an order's contents may still be changed.
  *
- * Locked once the first payment lands. The brief allows either policy provided
- * it is explained: the alternative (allow edits, but reject any that would drop
- * the total below what has already been collected) needs a second validation
- * path and can still leave a customer's receipt disagreeing with the order.
+ * Locked once the first payment lands. The alternative (allow edits, but
+ * reject any that would drop the total below what has already been collected)
+ * needs a second validation path on every write and can still leave a
+ * customer's receipt disagreeing with the order.
  * Freezing matches how invoicing actually works, where a settled document is
  * corrected by a credit note rather than by editing history.
  */

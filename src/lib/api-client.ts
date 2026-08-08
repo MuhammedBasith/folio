@@ -8,9 +8,9 @@ import type {
 /**
  * Browser-side API client.
  *
- * Every mutation in the UI goes through here, which means the REST API is not a
- * parallel implementation kept alive for reviewers: it is the write path the
- * product actually uses. If an endpoint breaks, the UI breaks with it.
+ * Every mutation in the UI goes through here, so the REST API is not a parallel
+ * implementation maintained on the side: it is the write path the product
+ * actually uses. If an endpoint breaks, the UI breaks with it.
  *
  * Errors are surfaced as a typed `ApiClientError` carrying the server's code,
  * message and per-field messages, so a form can attach a message to the input

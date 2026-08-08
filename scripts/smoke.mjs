@@ -1,8 +1,8 @@
 /**
  * End-to-end API smoke test.
  *
- * Walks the brief's sample scenario over real HTTP against a running server,
- * using a bearer token exactly as a reviewer would with curl or Postman.
+ * Walks the full payment lifecycle over real HTTP against a running server,
+ * using a bearer token exactly as an API client would.
  *
  *   node scripts/smoke.mjs [baseUrl]
  *
@@ -107,8 +107,8 @@ async function main() {
     weak.status === 422 && typeof weak.json?.error?.fields?.password === "string",
     JSON.stringify(weak.json?.error));
 
-  /* ---- the brief's scenario ---- */
-  section("The brief's sample scenario");
+  /* ---- the payment lifecycle ---- */
+  section("Payment lifecycle");
 
   const created = await call("/api/orders", {
     method: "POST",

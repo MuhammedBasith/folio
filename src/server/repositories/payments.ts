@@ -48,7 +48,6 @@ import { getOrder } from "./orders";
  * default. `FOR UPDATE` provides the mutual exclusion; a higher level would add
  * serialisation failures to handle without adding safety for this invariant.
  *
- * The brief says documenting the approach is enough. It is implemented.
  */
 
 export interface RecordPaymentResult {
