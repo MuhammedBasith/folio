@@ -378,6 +378,40 @@ async function main() {
   check("the document opens with an explicit theme",
     /<html[^>]+data-theme="(light|dark)"/.test(shell.text));
 
+  /* ---- rate limiting ---- */
+  //
+  // LAST ON PURPOSE. Tripping the login limit is the point of this section, and
+  // the bucket is keyed by client address, so anything after it that tried to
+  // authenticate would be refused for reasons that have nothing to do with it.
+  //
+  // Outside production the window is seconds rather than minutes, so this
+  // recovers before the next run. The COUNT is identical either way, which is
+  // what makes this a real test of the production behaviour.
+  console.log("\nRate limiting");
+
+  const attempts = [];
+  for (let i = 0; i < 12; i += 1) {
+    attempts.push(
+      await call("/api/auth/login", {
+        method: "POST",
+        body: { email: `nobody-${Date.now()}@folio.app`, password: "wrongwrong" },
+      }),
+    );
+  }
+
+  const refused = attempts.filter((r) => r.status === 429);
+
+  check("repeated failed logins are eventually refused", refused.length > 0,
+    `statuses: ${attempts.map((a) => a.status).join(",")}`);
+  check("the refusal uses the standard envelope",
+    refused[0]?.json?.error?.code === "RATE_LIMITED",
+    JSON.stringify(refused[0]?.json));
+  check("the refusal says how long to wait",
+    typeof refused[0]?.json?.error?.details?.retryAfterSeconds === "number");
+  check("some attempts were allowed before the limit bit",
+    attempts.filter((a) => a.status === 401).length >= 5,
+    `401s: ${attempts.filter((a) => a.status === 401).length}`);
+
   /* ---- summary ---- */
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed === 0 ? 0 : 1);
