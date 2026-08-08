@@ -406,7 +406,7 @@ order exists.
 ```
 102  unit tests         pure logic, no I/O, ~200ms
 30   integration tests  real PostgreSQL, real transactions, real locks
-47   smoke checks       end-to-end over HTTP against a running server
+52   smoke checks       end-to-end over HTTP against a running server
 32   screenshots        every page, both themes, desktop and phone
 ```
 
@@ -448,6 +448,7 @@ working code to confirm the suite catches it:
 | Rank part paid below pending in the list sort | 1 |
 | Sort settled orders oldest first | 1 |
 | Put overdue last in the list sort | 2 |
+| Import the theme storage key from the client module | 2 (smoke) |
 
 ### A critical bug found by adversarial review
 
@@ -611,6 +612,36 @@ Typography is Instrument Serif for display sizes and Inter for everything else,
 with a monospace face for references, amounts in fixed contexts, and eyebrow
 labels. The pairing is the point: a distinctive display face against a neutral
 text face is what stops an interface reading as a default.
+
+### A second bug, found by looking at the bytes
+
+The pre-paint theme script shipped for a while as:
+
+```js
+localStorage.getItem(undefined)
+```
+
+The root layout is a Server Component and imported `THEME_STORAGE_KEY` from
+`components/theme/theme-provider.tsx`, which carries `"use client"`. A Server
+Component importing a **non-component value** from a client module does not get
+the value: the bundler swaps the module for a client reference proxy, and every
+export that is not a component comes back `undefined`.
+
+Nothing errored. `getItem(undefined)` returns null, the script fell through to
+`prefers-color-scheme`, and the theme still looked right for anyone whose OS
+matched their choice. The typechecker was happy (`string | undefined` widens
+into a template literal without complaint), the linter was happy, the unit tests
+never touch the document shell, and the screenshot pass **could not see it**
+because Playwright sets `prefers-color-scheme` alongside `localStorage`, so dark
+mode rendered dark for the wrong reason. The only symptom was that an explicit
+choice quietly failed to survive a refresh.
+
+Two changes came out of it. The constants moved to `src/lib/theme.ts`, a module
+neither side marks, which is where anything crossing that boundary belongs. And
+the smoke suite now fetches a page and reads the HTML: it asserts the script is
+inlined, that it names a real storage key, and that no script this codebase
+authored contains the string `undefined`. Reintroducing the bug fails two of
+those checks.
 
 ---
 
