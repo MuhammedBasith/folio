@@ -44,7 +44,7 @@ const COLUMNS = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative overflow-hidden">
+    <footer className="relative">
       {/*
         NO RULES ANYWHERE IN HERE.
 
@@ -61,9 +61,15 @@ export function SiteFooter() {
       */}
       <GradientPlate
         src="/gradients/signal.webp"
-        className="top-[-10%] left-1/2 h-184 w-[min(96rem,190%)] -translate-x-1/2"
-        blur="blur-[80px]"
-        opacity="opacity-65 dark:opacity-28"
+        // Anchored to the BOTTOM and taller than the footer, so the light
+        // rises out of the previous section and falls away past the wordmark
+        // rather than starting and stopping inside a rectangle.
+        // Wider than it is tall, so it reads as a wash across the foot of the
+        // page rather than as one large oval sitting on it. A radial falloff on
+        // a squarer box always announces its own shape.
+        className="bottom-[-16%] left-1/2 h-[40rem] w-[min(92rem,175%)] -translate-x-1/2"
+        blur="blur-[64px]"
+        opacity="opacity-48 dark:opacity-34"
       />
 
       <div className="relative">

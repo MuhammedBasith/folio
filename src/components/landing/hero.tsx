@@ -24,7 +24,7 @@ import { StatusDot } from "@/components/status-badge";
  */
 export function Hero() {
   return (
-    <section className="relative overflow-hidden px-5 pt-28 pb-4 md:px-8 md:pt-32">
+    <section className="relative px-5 pt-28 pb-4 md:px-8 md:pt-32">
       {/*
         The top padding above clears the fixed header. It is a plain value
         rather than anything measured: the header is 56px tall at rest and this
@@ -40,13 +40,16 @@ export function Hero() {
       <GradientPlate
         src="/gradients/signal.webp"
         priority
-        className="top-[46%] left-1/2 h-128 w-[min(74rem,146%)] -translate-x-1/2"
-        opacity="opacity-58 dark:opacity-28"
+        className="top-[52%] left-1/2 h-[36rem] w-[min(60rem,120%)] -translate-x-1/2"
+        opacity="opacity-70 dark:opacity-40"
       />
       <GradientPlate
         src="/gradients/mist.webp"
-        className="top-[44%] left-[-16%] h-96 w-lg"
-        opacity="opacity-35 dark:opacity-18"
+        // Barely there in light mode: the sage in this plate turns grey against
+        // warm paper, and a grey smudge beside a coral glow reads as a smear
+        // rather than as a second light source.
+        className="top-[56%] left-[-10%] h-80 w-[28rem]"
+        opacity="opacity-[0.18] dark:opacity-20"
       />
 
       <div className="relative mx-auto max-w-3xl text-center">
