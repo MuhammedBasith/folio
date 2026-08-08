@@ -1,81 +1,40 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-/** Long enough to swallow a burst of typing, short enough to feel live. */
-const DEBOUNCE_MS = 200;
 
 /**
  * Search across customer and reference.
  *
- * THE QUERY LIVES IN THE URL, not in React. A filtered view is then shareable,
- * survives a refresh, and the back button undoes the search, which is what
- * every user expects and almost no search box does.
+ * CONTROLLED, AND NOTHING IS DEBOUNCED ANY MORE. It used to hold its own value,
+ * debounce it, and push it through the router, because filtering happened on
+ * the server and a navigation per keystroke would have been absurd. Filtering
+ * now happens in the browser over rows that are already loaded, so there is
+ * nothing to wait for: every character narrows the table on the same frame.
  *
- * The input itself is controlled locally so it never lags a keystroke behind
- * the router, and the URL is written on a 200ms debounce. Without the debounce
- * a nine character customer name is nine navigations, each re-rendering the
- * server component; with it, one.
- *
- * `useTransition` marks the navigation non-urgent, so the previous results stay
- * on screen and dim rather than being replaced by a spinner. Results that
- * flicker to empty and back on every keystroke are harder to read than results
- * that are briefly stale.
+ * The parent still records the query in the URL, on a `replaceState` rather
+ * than a push, so a search is shareable without leaving one history entry per
+ * letter typed.
  */
-export function OrderSearch() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-
+export function OrderSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [value, setValue] = useState(() => searchParams.get("q") ?? "");
-
-  /**
-   * The debounce lives in an effect keyed on the value, rather than in a timer
-   * started from the change handler. That way React owns the cleanup: an
-   * unmount mid-flight cancels the pending navigation instead of pushing a
-   * route for a component that no longer exists.
-   */
-  useEffect(() => {
-    const current = searchParams.get("q") ?? "";
-    if (value === current) return;
-
-    const timer = setTimeout(() => {
-      const params = new URLSearchParams(searchParams.toString());
-
-      if (value.trim()) {
-        params.set("q", value.trim());
-      } else {
-        params.delete("q");
-      }
-
-      const query = params.toString();
-
-      startTransition(() => {
-        router.replace(query ? `${pathname}?${query}` : pathname, {
-          scroll: false,
-        });
-      });
-    }, DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [value, searchParams, pathname, router]);
 
   return (
     <div
-      data-pending={isPending || undefined}
       className={cn(
         // Full width on a phone, where the toolbar wraps and this gets its own
         // line anyway. A 160px field sitting alone on a 390px row is not
         // restraint, it is a field that could not fit its own placeholder.
         "group relative flex h-8 w-full items-center rounded-md border border-line bg-surface-sunken/45 sm:w-auto",
-        "transition-[border-color,box-shadow,background-color,opacity] duration-160 ease-out-quint",
+        "transition-[border-color,box-shadow,background-color] duration-160 ease-out-quint",
         "focus-within:border-line-strong/45 focus-within:bg-surface focus-within:ring-2 focus-within:ring-(--focus-ring)/12",
-        "data-pending:opacity-70",
       )}
     >
       <Search
@@ -87,21 +46,16 @@ export function OrderSearch() {
         ref={inputRef}
         type="search"
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Escape" && value) {
             // Escape clears rather than blurring. Blurring loses the caret and
             // leaves the query behind, which is the opposite of what the key
             // is for in every other search field.
             event.preventDefault();
-            setValue("");
+            onChange("");
           }
         }}
-        // Short enough to fit the field. The longer version was truncated
-        // mid-word, and a placeholder that reads "Search customer or referenc"
-        // is worse than no placeholder at all. The full description is on the
-        // label, where screen readers get it in full and sighted users are not
-        // shown a clipped sentence.
         placeholder="Search orders"
         aria-label="Search orders by customer name or reference"
         className={cn(
@@ -120,7 +74,7 @@ export function OrderSearch() {
         <button
           type="button"
           onClick={() => {
-            setValue("");
+            onChange("");
             inputRef.current?.focus();
           }}
           aria-label="Clear search"

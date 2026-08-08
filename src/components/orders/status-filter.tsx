@@ -1,13 +1,18 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/domain/orders";
 import { STATUS_DESCRIPTIONS, STATUS_LABELS } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /**
  * Status filter.
+ *
+ * CONTROLLED, AND IT OWNS NO ROUTING. It used to call `router.replace` itself,
+ * which meant pressing a tab waited on a server round trip before anything
+ * moved. The parent now decides what a selection means; this component's whole
+ * job is to look right and move well, and it re-renders the instant its `value`
+ * prop changes.
  *
  * THE INDICATOR SLIDES. A segmented control whose highlight teleports between
  * options tells the user nothing about the relationship between where they were
@@ -19,32 +24,25 @@ import { cn } from "@/lib/utils";
  * positioned element, rather than by toggling a background class per option.
  * That is what makes the motion continuous. `transform` and `width` only, so it
  * stays off the layout path.
- *
- * On the very first paint the indicator is placed without a transition. An
- * element that slides in from the left edge on page load is animating a change
- * that never happened.
- *
- * State lives in the URL, not in React, so a filtered view is shareable,
- * survives a refresh, and the back button does what a user expects.
  */
 export function StatusFilter({
   counts,
   total,
+  value,
+  onSelect,
 }: {
   counts: Record<OrderStatus, number>;
   total: number;
+  /** The selected option: a status, or "all". */
+  value: string;
+  onSelect: (value: string) => void;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const [isPending, startTransition] = useTransition();
-
-  const active = searchParams.get("status") ?? "all";
-
   const listRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
+
   /**
-   * Position and "should it animate" are ONE piece of state.
+   * Position, "should it animate", and "is there more to the right" are ONE
+   * piece of state.
    *
    * Splitting them meant either reading a ref during render or calling setState
    * from an effect to flip a flag, and React's lint rules correctly reject
@@ -61,19 +59,13 @@ export function StatusFilter({
      *
      * On a phone the five options do not fit, so the strip scrolls. Without a
      * cue that is invisible: the last option is cut off flush against the
-     * border and reads as a rendering mistake rather than as more content. The
-     * flag drives a mask that fades the edge, which is the standard way to say
-     * "this continues" without spending space on an arrow.
-     *
-     * It rides in the same state object as the indicator because it comes from
-     * the same measurement, on the same scroll and resize events. A second
-     * piece of state would be a second render for one number.
+     * border and reads as a rendering mistake rather than as more content.
      */
     overflowing: boolean;
   } | null>(null);
 
   const measure = useCallback(() => {
-    const button = buttonRefs.current.get(active);
+    const button = buttonRefs.current.get(value);
     const list = listRef.current;
 
     if (!button || !list) return;
@@ -84,10 +76,9 @@ export function StatusFilter({
       animate: previous !== null,
       // 1px of tolerance: sub-pixel layout leaves a fractional remainder even
       // when the strip is scrolled fully to its end.
-      overflowing:
-        list.scrollWidth - list.clientWidth - list.scrollLeft > 1,
+      overflowing: list.scrollWidth - list.clientWidth - list.scrollLeft > 1,
     }));
-  }, [active]);
+  }, [value]);
 
   /**
    * Layout effect, not effect: this must run before paint, otherwise the
@@ -110,24 +101,6 @@ export function StatusFilter({
     };
   }, [measure]);
 
-  function select(value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-
-    if (value === "all") {
-      params.delete("status");
-    } else {
-      params.set("status", value);
-    }
-
-    const query = params.toString();
-
-    startTransition(() => {
-      router.replace(query ? `${pathname}?${query}` : pathname, {
-        scroll: false,
-      });
-    });
-  }
-
   const options = [
     { value: "all", label: "All", count: total, description: "Every order." },
     ...ORDER_STATUSES.map((status) => ({
@@ -143,7 +116,6 @@ export function StatusFilter({
       ref={listRef}
       role="group"
       aria-label="Filter orders by status"
-      data-pending={isPending || undefined}
       style={
         indicator?.overflowing
           ? {
@@ -156,11 +128,7 @@ export function StatusFilter({
       }
       className={cn(
         // A recessed track, so the raised indicator has something to sit on.
-        // The two used to be a hair apart in light mode and the selected tab
-        // was, in the user's words, not visible at all: white on near-white,
-        // with only a shadow to separate them.
         "relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg border border-line bg-surface-sunken p-1",
-        "transition-opacity duration-160 data-pending:opacity-70",
         // Hide the scrollbar itself. The mask above is the affordance, and a
         // native bar under a 30px strip is thicker than the content.
         "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -171,21 +139,17 @@ export function StatusFilter({
           aria-hidden
           className={cn(
             "pointer-events-none absolute top-1 bottom-1 left-0 rounded-md",
-            // Raised and bordered, but NOT lit along the top edge. The relief
-            // that makes a button read as a cap read here as a bright hairline
-            // sitting on top of the tab, so the indicator looked like it had a
-            // lid. A segmented control is a flat plate sliding in a track; it
-            // wants uniform edges, and the border plus the contact shadow are
-            // enough to lift it off the track.
+            // Raised and bordered, but NOT lit along the top edge. A segmented
+            // control is a flat plate sliding in a track; it wants uniform
+            // edges, and the border plus the contact shadow are enough to lift
+            // it off the track.
             "bg-surface-raised shadow-raised",
             "border border-line-strong/12",
             indicator.animate
               ? "transition-[transform,width] duration-220 ease-out-quint"
               : // First placement is an ENTRANCE, not a move. It scales up in
                 // place rather than sliding in from the left edge, because the
-                // first position is not a change from anywhere. `scale` is used
-                // as its own property so it composes with the inline
-                // `translateX` instead of fighting it.
+                // first position is not a change from anywhere.
                 "indicator-in",
           )}
           style={{
@@ -196,7 +160,7 @@ export function StatusFilter({
       ) : null}
 
       {options.map((option) => {
-        const selected = active === option.value;
+        const selected = value === option.value;
 
         return (
           <button
@@ -206,7 +170,7 @@ export function StatusFilter({
               if (node) buttonRefs.current.set(option.value, node);
               else buttonRefs.current.delete(option.value);
             }}
-            onClick={() => select(option.value)}
+            onClick={() => onSelect(option.value)}
             aria-pressed={selected}
             title={option.description}
             className={cn(
