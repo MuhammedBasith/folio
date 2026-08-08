@@ -44,7 +44,21 @@ const COLUMNS = [
 
 export function SiteFooter() {
   return (
-    <footer className="relative overflow-hidden border-t border-line">
+    <footer className="relative overflow-hidden">
+      {/*
+        NO RULES ANYWHERE IN HERE.
+
+        The footer used to be fenced off by a border across the top and split
+        internally by two more. Every one of them cut a hard grey line straight
+        across the gradient plate, which is the one element on the page that is
+        meant to be continuous: the light stopped at each rule and started again
+        underneath, so the plate read as three stacked panels rather than as one
+        field the page dissolves into.
+
+        Space separates these regions instead. It is what the plate was already
+        doing, and a gradient is a better boundary than a line because it has no
+        edge to notice.
+      */}
       <GradientPlate
         src="/gradients/signal.webp"
         className="top-[-10%] left-1/2 h-184 w-[min(96rem,190%)] -translate-x-1/2"
@@ -69,7 +83,7 @@ export function SiteFooter() {
 
         {/* ---- Links ---- */}
         <div className="mx-auto w-full max-w-content px-5 pb-12 md:px-8">
-          <div className="grid gap-10 border-t border-line pt-12 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
+          <div className="grid gap-10 pt-4 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
             <div>
               <Link
                 href="/"
@@ -102,7 +116,7 @@ export function SiteFooter() {
             ))}
           </div>
 
-          <div className="mt-12 flex flex-col gap-1.5 border-t border-line pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-14 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-caption text-ink-faint">
               Folio <span className="tabular-nums">© 2026</span>
             </p>
@@ -126,20 +140,41 @@ export function SiteFooter() {
           aria-hidden
           className="relative overflow-hidden select-none"
           style={{
-            height: "min(7vw, 92px)",
-            maskImage: "linear-gradient(to bottom, black 0%, transparent 92%)",
+            /**
+             * THE STRIP AND THE TYPE SIZE COME FROM ONE VARIABLE.
+             *
+             * They were independent `min()` expressions, and their ratio
+             * therefore changed with the viewport. Past about 1100px the type
+             * outgrew the strip and the tops of the letters were sliced off by
+             * the crop, which reads as a rendering fault rather than as a
+             * deliberate half-sunk wordmark. Below that the letters were simply
+             * tiny on a phone.
+             *
+             * Deriving the height from the size fixes the proportion at every
+             * width: 46% of the type size is enough strip to clear the cap
+             * height of Instrument Serif with room to spare, and the 40%
+             * downward shift puts the baseline below the crop so exactly the
+             * upper half of the letterforms shows.
+             *
+             * The viewport share is generous (34vw) so a phone gets a wordmark
+             * worth looking at, and the cap keeps it sane on a wide display.
+             */
+            "--wordmark": "min(34vw, 300px)",
+            height: "calc(var(--wordmark) * 0.46)",
+            maskImage:
+              "linear-gradient(to bottom, black 0%, black 18%, transparent 96%)",
             WebkitMaskImage:
-              "linear-gradient(to bottom, black 0%, transparent 92%)",
-          }}
+              "linear-gradient(to bottom, black 0%, black 18%, transparent 96%)",
+          } as React.CSSProperties}
         >
           <p
             className="absolute bottom-0 left-1/2 font-heading whitespace-nowrap text-ink"
             style={{
-              fontSize: "min(20vw, 260px)",
+              fontSize: "var(--wordmark)",
               lineHeight: 1,
               letterSpacing: "-0.03em",
               paddingRight: "0.06em",
-              transform: "translate(-50%, 34%)",
+              transform: "translate(-50%, 40%)",
               opacity: 0.1,
             }}
           >
