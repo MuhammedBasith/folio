@@ -56,6 +56,20 @@ export function StatusFilter({
     x: number;
     w: number;
     animate: boolean;
+    /**
+     * True while there are options past the right edge.
+     *
+     * On a phone the five options do not fit, so the strip scrolls. Without a
+     * cue that is invisible: the last option is cut off flush against the
+     * border and reads as a rendering mistake rather than as more content. The
+     * flag drives a mask that fades the edge, which is the standard way to say
+     * "this continues" without spending space on an arrow.
+     *
+     * It rides in the same state object as the indicator because it comes from
+     * the same measurement, on the same scroll and resize events. A second
+     * piece of state would be a second render for one number.
+     */
+    overflowing: boolean;
   } | null>(null);
 
   const measure = useCallback(() => {
@@ -68,6 +82,10 @@ export function StatusFilter({
       x: button.offsetLeft - list.scrollLeft,
       w: button.offsetWidth,
       animate: previous !== null,
+      // 1px of tolerance: sub-pixel layout leaves a fractional remainder even
+      // when the strip is scrolled fully to its end.
+      overflowing:
+        list.scrollWidth - list.clientWidth - list.scrollLeft > 1,
     }));
   }, [active]);
 
@@ -126,9 +144,22 @@ export function StatusFilter({
       role="group"
       aria-label="Filter orders by status"
       data-pending={isPending || undefined}
+      style={
+        indicator?.overflowing
+          ? {
+              maskImage:
+                "linear-gradient(to right, black calc(100% - 2rem), transparent)",
+              WebkitMaskImage:
+                "linear-gradient(to right, black calc(100% - 2rem), transparent)",
+            }
+          : undefined
+      }
       className={cn(
         "relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-md border border-line bg-surface-sunken p-0.5",
         "transition-opacity duration-160 data-pending:opacity-70",
+        // Hide the scrollbar itself. The mask above is the affordance, and a
+        // native bar under a 30px strip is thicker than the content.
+        "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
       )}
     >
       {indicator ? (
