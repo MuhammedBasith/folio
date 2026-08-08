@@ -71,7 +71,12 @@ export function SiteHeader() {
     >
       <div
         className={cn(
-          "flex w-full items-center gap-4",
+          // A GRID, NOT A FLEX ROW. Flex packs the links immediately after the
+          // wordmark, so they sat left of centre and drifted every time the
+          // wordmark changed width (which it does, on scroll). Three columns
+          // with the outer two both `1fr` puts the middle one on the page's
+          // true centre line and keeps it there in both states.
+          "grid w-full grid-cols-[1fr_auto_1fr] items-center gap-4",
           "border transition-[max-width,margin,padding,border-radius,border-color,background-color,box-shadow] duration-500 ease-drawer",
           condensed
             ? // Asymmetric on purpose. A fully rounded pill curves away from
@@ -80,7 +85,7 @@ export function SiteHeader() {
               // right meanwhile wants to sit close, because its own shape
               // already provides the inset. More on the left, less on the right,
               // and the two ends read as equally spaced.
-              "mt-2.5 max-w-2xl rounded-full border-line bg-surface-canvas/72 py-1.5 pr-1.5 pl-6 shadow-raised backdrop-blur-xl"
+              "mt-2.5 max-w-3xl rounded-full border-line bg-surface-canvas/72 py-1.5 pr-1.5 pl-5 shadow-raised backdrop-blur-xl"
             : // The resting bar shares the page gutter (px-5 / md:px-8) so the
               // mark sits on the same vertical line as the content below it.
               // At px-2 it was jammed against the viewport edge while the
@@ -91,28 +96,37 @@ export function SiteHeader() {
       >
         <Link
           href="/"
-          className="group inline-flex min-h-8 shrink-0 items-center text-ink"
+          className="group inline-flex min-h-8 w-fit shrink-0 items-center justify-self-start text-ink"
           aria-label="Folio home"
         >
           <Mark className="size-5 shrink-0 transition-transform duration-280 ease-spring group-hover:rotate-90" />
           {/*
-            `max-width` and `opacity`, never `display`. A hidden element cannot
-            transition, so swapping visibility would make the wordmark pop in
-            and out while everything around it glides.
+            THE WORDMARK STAYS, IT ONLY SHRINKS.
+
+            It used to collapse to nothing on scroll, which read well on its own
+            but left the pill lopsided: the links are centred on the page, so a
+            20px mark at one end against a filled button at the other put all
+            the weight on the right and a hole on the left. Keeping the word,
+            one step smaller, gives the left side something to hold.
+
+            `font-size` transitions, never `display`. A hidden element cannot
+            animate, so swapping visibility would make the wordmark pop while
+            everything around it glides.
           */}
           <span
             className={cn(
-              "overflow-hidden font-heading leading-none whitespace-nowrap",
-              "text-[1.5rem] tracking-[-0.028em]",
-              "transition-[max-width,opacity,margin] duration-400 ease-drawer",
-              condensed ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-40 opacity-100",
+              "ml-2.5 font-heading leading-none whitespace-nowrap",
+              "transition-[font-size,letter-spacing] duration-400 ease-drawer",
+              condensed
+                ? "text-[1.25rem] tracking-[-0.026em]"
+                : "text-[1.5rem] tracking-[-0.028em]",
             )}
           >
             Folio
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="col-start-2 hidden items-center gap-1 justify-self-center md:flex">
           {SECTIONS.map((section) => (
             <a
               key={section.href}
@@ -131,7 +145,7 @@ export function SiteHeader() {
           opens is the sign in page, and the footer still carries a plain link
           for anyone who already has an account.
         */}
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        <div className="col-start-3 flex shrink-0 items-center gap-2 justify-self-end">
           <ThemeToggle />
           <Button asChild size="sm" className="rounded-full px-4">
             <Link href="/login">Open the demo</Link>
