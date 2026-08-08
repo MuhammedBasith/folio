@@ -15,6 +15,37 @@
 
 const BASE = process.argv[2] ?? "http://localhost:3000";
 
+/**
+ * A distinct client address per run, for everything except the rate limit
+ * checks themselves.
+ *
+ * The suite makes four signup attempts and several logins. Against the real
+ * per-address limits, two runs inside one window exhaust the signup budget and
+ * the third run fails for reasons that have nothing to do with the code under
+ * test. That is a flaky suite, which is worse than no suite.
+ *
+ * Presenting a fresh address is not cheating: each run genuinely is a different
+ * client, and the limiter is keyed on exactly that. The rate limit section
+ * below deliberately pins ONE address so it can still prove the limit bites.
+ */
+const RUN_SEED = Date.now();
+const octet = (shift) => (RUN_SEED >> shift) % 250;
+
+/** Everything except the rate limit section. */
+const RUN_ID = `10.${octet(16)}.${octet(8)}.${octet(0)}`;
+
+/**
+ * The rate limit section, pinned within a run and distinct between runs.
+ *
+ * It has to be constant across the twelve attempts or the limit never trips,
+ * and it has to differ between runs or the SECOND run starts inside the first
+ * run's still-open window and sees twelve refusals with no successes before
+ * them. Both halves of that matter: the check asserts some attempts were
+ * allowed before the limit bit, which is what distinguishes a working limiter
+ * from an endpoint that is simply down.
+ */
+const LIMIT_CLIENT = `172.${octet(16)}.${octet(8)}.${octet(0)}`;
+
 let passed = 0;
 let failed = 0;
 
@@ -32,11 +63,14 @@ function section(title) {
   console.log(`\n${title}`);
 }
 
-async function call(path, { method = "GET", body, token } = {}) {
+async function call(path, { method = "GET", body, token, client } = {}) {
   const response = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       "content-type": "application/json",
+      // Identifies this run to the rate limiter. Pass `client` explicitly to
+      // pin a fixed address when the limit itself is what is being tested.
+      "x-forwarded-for": client ?? RUN_ID,
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -394,6 +428,7 @@ async function main() {
     attempts.push(
       await call("/api/auth/login", {
         method: "POST",
+        client: LIMIT_CLIENT,
         body: { email: `nobody-${Date.now()}@folio.app`, password: "wrongwrong" },
       }),
     );
