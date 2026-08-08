@@ -92,11 +92,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             href="/"
             className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em] text-ink transition-opacity duration-160 hover:opacity-60"
           >
-            Tally
+            Folio
           </Link>
 
           <h1 className="mt-9 font-heading text-display text-ink">
-            {isSignup ? "Create your tally" : "Welcome back"}
+            {isSignup ? "Start your ledger" : "Welcome back"}
           </h1>
           <p className="mt-1.5 text-body-sm text-ink-muted">
             {isSignup
@@ -161,7 +161,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             <div className="mt-7 rounded-md border border-line bg-surface-raised px-3.5 py-2.5">
               <p className="text-label uppercase text-ink-faint">Demo sign in</p>
               <p className="mt-1 font-mono text-caption text-ink">
-                demo@tally.app
+                demo@folio.app
                 <span className="mx-2 text-ink-disabled">/</span>
                 demo1234
               </p>

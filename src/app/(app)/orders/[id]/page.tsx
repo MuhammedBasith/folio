@@ -21,9 +21,9 @@ export async function generateMetadata({
 
   try {
     const order = await getOrder(session.userId, id);
-    return { title: `${order.reference} · ${order.customer} · Tally` };
+    return { title: `${order.reference} · ${order.customer} · Folio` };
   } catch {
-    return { title: "Order · Tally" };
+    return { title: "Order · Folio" };
   }
 }
 

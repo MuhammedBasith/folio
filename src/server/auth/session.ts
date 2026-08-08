@@ -24,10 +24,10 @@ import { cookies } from "next/headers";
  *   - Seven day expiry, checked by `jwtVerify` on every request.
  */
 
-const SESSION_COOKIE = "tally_session";
+const SESSION_COOKIE = "folio_session";
 const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 7;
-const ISSUER = "tally";
-const AUDIENCE = "tally:api";
+const ISSUER = "folio";
+const AUDIENCE = "folio:api";
 
 export interface SessionPayload {
   userId: string;

@@ -1,4 +1,4 @@
-// Tally: orders and settlements.
+// Folio: orders and settlements.
 //
 // Money is stored as INTEGER MINOR UNITS (cents) everywhere, never as a float
 // or a Decimal. Three payments of 33.33 against a 100.00 order must sum to

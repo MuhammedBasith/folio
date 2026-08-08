@@ -5,7 +5,7 @@ import { OrderForm } from "@/components/orders/order-form";
 import { requireUser } from "@/server/auth/current-user";
 
 export const metadata: Metadata = {
-  title: "New order · Tally",
+  title: "New order · Folio",
 };
 
 export default async function NewOrderPage() {

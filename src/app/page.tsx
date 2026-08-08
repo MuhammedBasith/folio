@@ -26,7 +26,7 @@ export default async function LandingPage() {
       <header className="border-b border-line">
         <div className="mx-auto flex h-13 w-full max-w-content items-center justify-between px-5 md:px-8">
           <span className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em] text-ink">
-            Tally
+            Folio
           </span>
           <Link
             href="/login"
@@ -59,7 +59,7 @@ export default async function LandingPage() {
 
             <p className="mx-auto mt-5 max-w-prose text-body-lg text-ink-muted">
               Write down what a customer ordered. Record each payment as it
-              lands. Tally works out the balance, decides whether the order is
+              lands. Folio works out the balance, decides whether the order is
               short or late, and keeps the arithmetic exact to the cent.
             </p>
 
@@ -73,7 +73,7 @@ export default async function LandingPage() {
             </div>
 
             <p className="mt-5 font-mono text-caption text-ink-faint">
-              demo@tally.app
+              demo@folio.app
               <span className="mx-1.5 text-ink-disabled">/</span>
               demo1234
             </p>
@@ -174,7 +174,7 @@ export default async function LandingPage() {
               </h2>
               <p className="mt-3.5 text-body-sm text-ink-muted">
                 Both descriptions are true, so precedence decides what you see.
-                Tally checks in this order, and the consequences are the point:
+                Folio checks in this order, and the consequences are the point:
                 an order settled after its due date reads as paid, because
                 nothing is owed and so nothing can be late.
               </p>
@@ -218,7 +218,7 @@ export default async function LandingPage() {
                 Three payments of $33.33 against a $100 order leave exactly one
                 cent outstanding. Held as decimals they sum to
                 99.99000000000001, and the order either never settles or settles
-                a cent early. Tally stores integers, so the balance is exact by
+                a cent early. Folio stores integers, so the balance is exact by
                 construction rather than by rounding.
               </p>
             </div>
@@ -249,7 +249,7 @@ export default async function LandingPage() {
 
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-content flex-wrap items-center justify-between gap-3 px-5 py-6 md:px-8">
-          <span className="font-heading text-body-lg text-ink">Tally</span>
+          <span className="font-heading text-body-lg text-ink">Folio</span>
           <div className="flex items-center gap-5">
             <Link
               href="/tokens"

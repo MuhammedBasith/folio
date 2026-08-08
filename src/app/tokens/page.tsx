@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Design tokens",
-  description: "Living reference for the token system Tally is built on.",
+  description: "Living reference for the token system Folio is built on.",
 };
 
 /* ------------------------------------------------------------------ */

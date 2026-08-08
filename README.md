@@ -1,15 +1,15 @@
-# Tally
+# Folio
 
 **Know exactly who owes you what.**
 
-Tally is a small application for tracking orders and the payments that settle
+Folio is a small application for tracking orders and the payments that settle
 them. Write down what a customer ordered, record each payment as it arrives, and
-Tally works out the balance, decides whether the order is short or late, and
+Folio works out the balance, decides whether the order is short or late, and
 keeps the arithmetic exact to the cent.
 
 **Live:** _add your deployment URL_
 
-**Demo:** `demo@tally.app` / `demo1234`
+**Demo:** `demo@folio.app` / `demo1234`
 Seeded with seven orders covering every status, including one that was overdue
 and is now settled, and one with a single cent outstanding.
 
@@ -34,10 +34,10 @@ and is now settled, and one with a single cent outstanding.
 
 ## What this is
 
-Tally is a private ledger, not a payment processor.
+Folio is a private ledger, not a payment processor.
 
 One business owner signs in and keeps a record of their own orders. A customer
-is a name on an order, not an account: customers never see Tally, receive
+is a name on an order, not an account: customers never see Folio, receive
 nothing from it, and cannot log in. "Recording a payment" means the owner
 writing down that money arrived, not the customer paying through the app. No
 money moves through this system.
@@ -75,7 +75,7 @@ bun run db:seed
 bun run dev
 ```
 
-Open http://localhost:3000 and sign in with `demo@tally.app` / `demo1234`.
+Open http://localhost:3000 and sign in with `demo@folio.app` / `demo1234`.
 
 ### Environment variables
 
@@ -342,7 +342,7 @@ without a cookie jar.
 ```bash
 TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"email":"demo@tally.app","password":"demo1234"}' | jq -r .token)
+  -d '{"email":"demo@folio.app","password":"demo1234"}' | jq -r .token)
 
 curl -s localhost:3000/api/orders -H "authorization: Bearer $TOKEN" | jq
 ```

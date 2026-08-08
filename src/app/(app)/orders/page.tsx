@@ -17,7 +17,7 @@ import { listOrders } from "@/server/repositories/orders";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Orders · Tally",
+  title: "Orders · Folio",
 };
 
 /**

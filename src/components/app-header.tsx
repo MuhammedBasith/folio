@@ -56,7 +56,7 @@ export function AppHeader({ email }: { email: string }) {
           href="/orders"
           className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em] text-ink transition-opacity duration-160 hover:opacity-60"
         >
-          Tally
+          Folio
         </Link>
 
         <div className="ml-auto flex items-center gap-3">

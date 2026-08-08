@@ -15,7 +15,7 @@ import bcrypt from "bcryptjs";
  * never rots.
  */
 
-const DEMO_EMAIL = "demo@tally.app";
+const DEMO_EMAIL = "demo@folio.app";
 const DEMO_PASSWORD = "demo1234";
 
 function daysFromNow(days: number): string {
