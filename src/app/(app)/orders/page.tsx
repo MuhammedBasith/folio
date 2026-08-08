@@ -67,7 +67,16 @@ export default async function OrdersPage({
 
         <div className="flex items-center gap-2">
           <Button asChild variant="secondary">
-            <a href="/api/orders/export" download>
+            {/* Carries the active filter through, so the file matches the
+                rows on screen rather than silently exporting everything. */}
+            <a
+              href={
+                activeStatus
+                  ? `/api/orders/export?status=${activeStatus}`
+                  : "/api/orders/export"
+              }
+              download
+            >
               Export CSV
             </a>
           </Button>
