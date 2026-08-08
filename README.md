@@ -29,6 +29,7 @@ and is now settled, and one with a single cent outstanding.
 - [Design system](#design-system)
 - [Assumptions and trade-offs](#assumptions-and-trade-offs)
 - [What I would do before production](#what-i-would-do-before-production)
+- [Deployment](#deployment)
 
 ---
 
@@ -45,8 +46,8 @@ money moves through this system.
 Accounts exist so that several unrelated businesses can share one deployment
 without ever seeing each other's data.
 
-Two things go beyond the brief, both because the brief stops one step short of
-what the screen is actually for:
+Two things go past what a plain order tracker does, because a plain order
+tracker stops one step short of what the screen is actually for:
 
 - **Debtor ageing.** "You are owed $7,368" is close to useless on its own. Money
   four days late is an admin oversight; money four months late is a bad debt
@@ -170,7 +171,7 @@ server calling itself over HTTP adds a network round trip, a second
 serialisation pass and a duplicate auth check to reach data it can already read.
 
 The REST API is not bypassed logic. Every **mutation** in the UI goes through it
-(`src/lib/api-client.ts`), so the endpoints a reviewer exercises with curl are
+(`src/lib/api-client.ts`), so the endpoints you can exercise with curl are
 the same ones the product itself uses to write. If an endpoint breaks, the UI
 breaks with it.
 
@@ -243,7 +244,7 @@ paid and overdue. Precedence decides what the user sees:
 
 | Case | Result | Reasoning |
 |---|---|---|
-| Was overdue, now fully paid | `paid` | Nothing is owed, so nothing can be late. The brief names this one explicitly. Seeded as ORD-0005, settled 11 days ago against a due date 40 days ago. |
+| Was overdue, now fully paid | `paid` | Nothing is owed, so nothing can be late. Seeded as ORD-0005, settled 11 days ago against a due date 40 days ago. |
 | Unpaid and past the due date | `overdue`, not `pending` | Lateness is the more urgent fact for the person reading the dashboard. |
 | Part paid and past the due date | `overdue`, not `partially_paid` | Same reasoning. The amount paid is still shown in its own column, so no information is lost. |
 | Over-paid (only possible from corrupted data) | `paid` | `>=`, not `==`, so a bad row degrades to a sensible reading rather than falling through to `pending`. |
@@ -256,7 +257,7 @@ Due dates are stored as SQL `DATE` (no time component), which Prisma returns as
 midnight UTC. Comparing that against a raw `new Date()` would tip an order into
 `overdue` at midnight UTC **on its own due date**, a full day early. Both sides
 are therefore reduced to a UTC calendar day before comparison, so the rule reads
-exactly as the brief states it: past the due *date*.
+exactly as it is written: past the due *date*.
 
 **The trade-off:** "today" means UTC today. For one user in one timezone that is
 at most a few hours of skew, on the one day an order falls due. Per-user
@@ -270,7 +271,8 @@ implementation, because that version passes every other status test.
 
 ## Concurrency: the over-payment race
 
-The brief asks what happens if two payments are submitted at the same time, and
+The interesting question is what happens if two payments are submitted at the
+same time, and
 says documenting the approach is sufficient. **It is implemented**, and there is
 a test proving it works.
 
@@ -332,7 +334,7 @@ a live server and asserts exactly one is accepted.
 deletes are both refused with `409 ORDER_LOCKED`, enforced in the repository,
 not by hiding buttons.
 
-The brief allows either policy provided it is explained. The alternative, allowing
+Either policy is defensible provided it is explained. The alternative, allowing
 edits, but reject any that would drop the total below what has already been
 edits but rejecting any that drop the total below what has been collected, needs a
 second validation path on every write, and can still leave a
@@ -425,10 +427,11 @@ order exists.
 ## Testing
 
 ```
-140  unit tests         pure logic, no I/O, ~200ms
+153  unit tests         pure logic, no I/O, ~200ms
 30   integration tests  real PostgreSQL, real transactions, real locks
-52   smoke checks       end-to-end over HTTP against a running server
+56   smoke checks       end-to-end over HTTP against a running server
 32   screenshots        every page, both themes, desktop and phone
+140  responsive checks  7 pages x 10 widths x 2 themes
 ```
 
 ### Running them
@@ -443,6 +446,7 @@ bun run test:integration    # refuses to run unless the URL contains "test"
 bun run dev &
 bun run smoke
 bun run shoot             # writes .screenshots/, fails on any console error
+bun run responsive        # overflow, touch targets, iOS zoom, at 10 widths
 ```
 
 `bun run shoot` exists because the other three cannot see. A class-merging bug
@@ -475,6 +479,9 @@ working code to confirm the suite catches it:
 | Add one to `daysOverdue` | 14 |
 | Raise the threshold so the final chase tone is unreachable | 1 |
 | Chase for the order total instead of the balance | 2 |
+| Allow one extra login attempt past the limit | 4 |
+| Key the rate limiter on the last forwarded hop | 1 |
+| Drop the scope from the rate limit key | 5 |
 
 ### A critical bug found by adversarial review
 
@@ -685,8 +692,8 @@ those checks.
 
 **Assumptions**
 
-1. A customer is a name on an order, not an entity. The brief says "plain string
-   is fine". No customer table, no customer portal.
+1. A customer is a name on an order, not an entity: a plain string. No customer
+   table, no customer portal.
 2. An order must have at least one line item. A zero-line order would have a
    total of zero and immediately read as `paid`, which is meaningless.
 3. A line's unit price may be zero (for a free item on a paid order), but
@@ -701,7 +708,7 @@ those checks.
 
 | Decision | Why | What it costs |
 |---|---|---|
-| Hand-rolled JWT auth instead of Auth.js | The brief requires a REST API and grades API design, so a reviewer will use curl. Auth.js is cookie + CSRF based, making terminal testing painful. Its credentials provider also leaves the bcrypt comparison and user lookup to be written by hand anyway. At the time of writing, the App Router version (v5) is still a beta release. | Roughly 80 lines to own and keep correct. |
+| Hand-rolled JWT auth instead of Auth.js | This exposes a public REST API, so it has to be usable from a terminal. Auth.js is cookie + CSRF based, making that painful. Its credentials provider also leaves the bcrypt comparison and user lookup to be written by hand anyway. At the time of writing, the App Router version (v5) is still a beta release. | Roughly 80 lines to own and keep correct. |
 | Status filtered in application code, not SQL | Three of four states depend on summing child rows against the current date. Expressing that in `WHERE` means either a denormalised column that goes stale, or a correlated subquery per row. | Every list query loads all of a user's orders. Fine at this scale; see below for what changes. |
 | Order lines replaced wholesale on update | The client sends the full intended list. Delete-then-insert in one transaction has no partial-update states to reason about. | Line item IDs are not stable across an edit. Nothing depends on them. |
 | Reference allocation retries on conflict | Two concurrent creates can derive the same next number. Rather than serialising every create behind a lock for a cosmetic field, the unique constraint rejects the loser and the write retries. | Up to five attempts in pathological contention. |
@@ -713,11 +720,13 @@ those checks.
 
 Roughly in order of how much it would matter:
 
-1. **Rate limit the auth endpoints.** Login is currently unlimited, which makes
-   credential stuffing free. This is the first thing I would add.
-   Signup answers `409 EMAIL_TAKEN`, which is honest and useful to a real user
-   but does undo the account-enumeration defences login goes to trouble to
-   maintain. Rate limiting is what makes keeping that message defensible.
+1. **Move rate limiting off the instance.** Login, signup and authenticated
+   writes are limited, but the counters live in memory in one process. They do
+   not survive a restart, they are per instance, and a fixed window allows a
+   burst across its boundary. It is still the difference between unlimited
+   password guesses and ten per fifteen minutes, and the fix is one function:
+   swap `hit()` in `src/server/api/rate-limit.ts` for a Redis `INCR` with
+   `EXPIRE` and every call site stays as it is.
 2. **Make logout actually revoke.** Tokens are stateless, so `POST /logout`
    clears the cookie but a captured bearer token stays valid until it expires.
    Production needs either short-lived access tokens with refresh, or a
@@ -750,26 +759,73 @@ Roughly in order of how much it would matter:
 10. **Refunds**, as their own entity rather than negative payments, so
     `sum(payments)` keeps meaning "money received".
 11. **Browser tests** for the critical flows. The smoke test covers the API
-    thoroughly; the UI is currently verified by screenshot rather than by
-    assertion.
+    thoroughly, and `bun run responsive` asserts real layout properties at ten
+    widths, but neither drives a full user journey through the UI.
 
 ---
 
 ## Deployment
 
-Built for Vercel with Neon PostgreSQL, though nothing is Vercel-specific.
+Built for Vercel and Neon. Nothing here is Vercel-specific; it is a standard
+Next.js app talking to PostgreSQL over Prisma.
 
-1. Create a Neon project and copy both connection strings.
-2. Import the repository into Vercel.
-3. Set `DATABASE_URL` (pooled, with `?pgbouncer=true`), `DIRECT_URL` (unpooled)
-   and `AUTH_SECRET`.
-4. Deploy. `postinstall` runs `prisma generate`.
-5. Apply the schema and seed:
-   ```bash
-   DIRECT_URL="…" bunx prisma migrate deploy
-   DIRECT_URL="…" bun run db:seed
-   ```
+### 1. Neon
 
-**One thing worth knowing:** Neon's free tier suspends a database after about
-five minutes of inactivity, so the first request after a quiet period pays an
-extra second or so while it wakes. That is the platform, not the application.
+Create a project at [neon.tech](https://neon.tech) and copy **both** connection
+strings from the dashboard:
+
+| Variable | Which string | Why |
+|---|---|---|
+| `DATABASE_URL` | the **pooled** one, host contains `-pooler` | Serverless functions open a connection per invocation. Without the pooler you exhaust Postgres' connection limit under any real traffic. |
+| `DIRECT_URL` | the **unpooled** one | Migrations need a real session. PgBouncer in transaction mode cannot run the statements Prisma emits for a migration. |
+
+Append `?sslmode=require` to both, and `&pgbouncer=true` to the pooled one.
+
+### 2. Vercel
+
+Import the repository, then set three environment variables for **all**
+environments (production, preview and development):
+
+```
+DATABASE_URL   the pooled Neon string
+DIRECT_URL     the unpooled Neon string
+AUTH_SECRET    openssl rand -base64 48
+```
+
+`AUTH_SECRET` signs every session. Use a different one per environment, and
+never reuse the one from your machine: rotating it invalidates every session,
+which is the correct behaviour and also what happens if it leaks.
+
+No build configuration is needed. `postinstall` runs `prisma generate`, and
+`next build` does the rest.
+
+### 3. Schema and seed data
+
+Run once, from your machine, against the production database:
+
+```bash
+DIRECT_URL="postgresql://…" bunx prisma migrate deploy
+DIRECT_URL="postgresql://…" bun run db:seed     # optional demo account
+```
+
+`migrate deploy` applies committed migrations and never generates new ones, so
+it is safe to run against production. The seed is idempotent and only creates
+the demo account; skip it if you do not want one.
+
+### Checklist
+
+- [ ] Both connection strings set, pooled and unpooled the right way round
+- [ ] `AUTH_SECRET` at least 32 characters, unique to the environment
+- [ ] `bunx prisma migrate deploy` run against the production database
+- [ ] `/api/auth/me` returns 401 when signed out, 200 when signed in
+
+### Things worth knowing
+
+**Neon's free tier suspends after ~5 minutes idle**, so the first request after
+a quiet period pays an extra second while the database wakes. That is the
+platform, not the application.
+
+**Rate limiting is per instance and in memory.** On a platform that runs several
+instances an attacker gets the limit multiplied by the number they reach. See
+[what I would do before production](#what-i-would-do-before-production) for the
+one-function fix.
