@@ -44,11 +44,15 @@ const FONT_SIZES = [
 /** Mirrors the `--shadow-*` namespace, which has the same ambiguity. */
 const SHADOWS = ["raised", "overlay"] as const;
 
+/** Mirrors `--inset-shadow-*`. Registered separately so the two compose. */
+const INSET_SHADOWS = ["relief", "relief-soft"] as const;
+
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
       "font-size": [{ text: [...FONT_SIZES] }],
       shadow: [{ shadow: [...SHADOWS] }],
+      "inset-shadow": [{ "inset-shadow": [...INSET_SHADOWS] }],
     },
   },
 });

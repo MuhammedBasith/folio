@@ -29,14 +29,51 @@
   --n-950: oklch(0.145 0.002 75);
 
   /**
+   * Brand hues.
+   *
+   * All three are sampled from the gradient photographs in `assets/gradients`
+   * rather than picked from a colour wheel, which is why they agree with each
+   * other and with the artwork: the same coral, the same sage, the same
+   * blue-grey haze. A palette built from a real image has relationships in it
+   * that a hand-picked one does not.
+   *
+   * Ember is the brand. It never appears on a control, only on editorial
+   * surfaces, because the accent inside the product is ink and the only chroma
+   * on a money screen should be carrying information.
+   */
+
+  /* Ember: the coral in `signal` and `ember`. */
+  --ember-50: oklch(0.973 0.017 40);
+  --ember-100: oklch(0.941 0.037 38);
+  --ember-200: oklch(0.884 0.068 36);
+  --ember-300: oklch(0.805 0.112 34);
+  --ember-400: oklch(0.72 0.158 32);
+  --ember-500: oklch(0.648 0.183 31);
+  --ember-600: oklch(0.578 0.172 30);
+  --ember-700: oklch(0.492 0.142 30);
+  --ember-900: oklch(0.31 0.088 30);
+
+  /* Sage: the cool green in `mist`. */
+  --sage-50: oklch(0.968 0.013 168);
+  --sage-100: oklch(0.94 0.024 168);
+  --sage-200: oklch(0.888 0.036 168);
+  --sage-400: oklch(0.735 0.048 168);
+  --sage-700: oklch(0.46 0.043 168);
+  --sage-900: oklch(0.295 0.03 168);
+
+  /* Slate: the blue-grey haze in `dusk` and `mist`. */
+  --slate-50: oklch(0.966 0.009 246);
+  --slate-100: oklch(0.937 0.017 246);
+  --slate-200: oklch(0.886 0.026 246);
+  --slate-400: oklch(0.722 0.04 246);
+  --slate-700: oklch(0.452 0.042 246);
+  --slate-900: oklch(0.288 0.032 246);
+
+  /**
    * Status hues.
    *
-   * These are the only chromatic values in the entire system, and they are
-   * deliberately low chroma. Colour here is information (this order is late),
-   * never decoration. Saturated status colours are the fastest way to make a
-   * money screen look like a toy.
-   *
-   * Each hue ships a tint (pill background), a line (pill border) and an ink
+   * Colour here is information (this order is late), never decoration. Each hue
+   * ships a tint (pill background), a line (pill border) and an ink
    * (text/icon) so contrast is decided once, here, and never improvised.
    */
 
@@ -69,4 +106,15 @@
   --duration-fast: 160ms;
   --duration-base: 200ms;
   --duration-slow: 280ms;
+  --duration-reveal: 900ms;
+
+  /**
+   * Film grain.
+   *
+   * One tile, referenced by every surface that wants texture. Inline SVG so it
+   * costs no request, and `stitchTiles` so the 220px tile repeats without a
+   * visible seam. It is what stops a large flat field of colour reading as a
+   * screenshot of a colour picker.
+   */
+  --noise-tile: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }

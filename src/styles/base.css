@@ -4,7 +4,7 @@
  * Deliberately small. Anything that belongs to a component belongs in that
  * component, not here. What lives here is either a global default that every
  * page depends on, or a behaviour that would be wrong to reimplement per
- * component (press feedback, focus rings, reduced motion).
+ * component (press feedback, focus rings, grain, reduced motion).
  */
 
 @layer base {
@@ -24,6 +24,30 @@
     font-size: var(--text-body);
     line-height: 1.55;
     letter-spacing: -0.008em;
+  }
+
+  /**
+   * Site-wide film grain.
+   *
+   * A fixed pseudo-element rather than a DOM node, so no component has to know
+   * it exists. It multiplies on paper and screens on charcoal, because a
+   * darkening noise tile is invisible on a dark ground and a lightening one is
+   * invisible on a light one.
+   *
+   * This is the difference between a large field of flat colour reading as a
+   * printed surface and reading as a screenshot of a colour picker. It is at
+   * 5.5% opacity: felt, not seen.
+   */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: var(--noise-opacity);
+    mix-blend-mode: var(--noise-blend);
+    background-image: var(--noise-tile);
+    background-size: 220px 220px;
   }
 
   /**
@@ -74,17 +98,29 @@
 /**
  * Press feedback.
  *
- * Asymmetric on purpose: the press registers in 100ms with a hard ease-out so
- * acknowledgement feels instantaneous, and the release takes 160ms with a
- * gentle overshoot so the control settles rather than snapping. Bounce is kept
- * low (a 1.4 overshoot, not 1.7) because this is a money screen; a springy
- * button here would read as a toy.
+ * TWO THINGS HAPPEN, AND THE SECOND IS THE ONE THAT SELLS IT. The control
+ * shrinks by 2%, and the lit hairline along its top edge goes out. That is what
+ * a physical key does when you push it below the plane of the light: it stops
+ * catching the highlight. Scale alone reads as a web page shrinking a
+ * rectangle; scale plus the relief going dark reads as something being pushed.
+ *
+ * The travel is 0.98, not the 0.97 this started at. On a 200px wide button 3%
+ * moves each edge three pixels, which is enough to see as motion rather than
+ * feel as pressure, and on a full-width button it looks like the layout broke.
+ *
+ * Timing is asymmetric: the press registers in 100ms with a hard ease-out so
+ * acknowledgement is instant, and the release takes 160ms with a slight
+ * overshoot so the control settles rather than snapping. Bounce is kept low
+ * (1.32 overshoot) because this is a money screen.
  */
 @utility pressable {
-  transition: transform var(--duration-fast) var(--ease-spring);
+  transition:
+    transform var(--duration-fast) var(--ease-spring),
+    box-shadow var(--duration-fast) var(--ease-out-quint);
 
   &:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
+    box-shadow: none;
     transition-duration: var(--duration-instant);
     transition-timing-function: var(--ease-out-quint);
   }
@@ -118,6 +154,74 @@
 }
 
 /**
+ * Editorial entrance.
+ *
+ * Slower and softer than `rise-in`, and it ends on `filter: none` rather than
+ * `blur(0)`. Chromium snaps the last frame of an interpolated blur and Safari
+ * leaves a residual half-pixel of softness on text; landing on `none` avoids
+ * both. Used for landing page sections, never inside the product.
+ */
+@utility blur-rise {
+  animation: blur-rise var(--duration-reveal) var(--ease-drawer) backwards;
+  animation-delay: calc(var(--stagger-index, 0) * 90ms);
+}
+
+@keyframes blur-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: none;
+  }
+}
+
+/**
+ * Scroll-triggered version of the same entrance. The `Reveal` component flips
+ * `data-visible` when the element crosses into the viewport; until then it is
+ * invisible. Kept as a separate utility because an animation that plays on
+ * mount and one that plays on scroll cannot share a declaration.
+ */
+@utility reveal {
+  opacity: 0;
+
+  &[data-visible="true"] {
+    animation: blur-rise var(--duration-reveal) var(--ease-drawer) forwards;
+    animation-delay: calc(var(--stagger-index, 0) * 90ms);
+  }
+}
+
+/**
+ * Animated theme change.
+ *
+ * The provider stamps `data-theme-vt` on <html> only while a toggle is in
+ * flight, so this never fights any other view transition. The default crossfade
+ * is removed from both snapshots: the old one stays put as the "before" plate,
+ * and the new one is clipped by an expanding circle driven from JS, which is
+ * why the new theme appears to bleed outward from the pixel that was clicked.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-theme-vt]::view-transition-old(root) {
+  z-index: 1;
+}
+
+html[data-theme-vt]::view-transition-new(root) {
+  z-index: 2;
+}
+
+html[data-theme-vt]::view-transition-group(root) {
+  animation-duration: var(--theme-vt-duration, 520ms);
+}
+
+/**
  * Reduced motion.
  *
  * Not a blanket kill. Movement (transform, translate) is removed because that
@@ -136,5 +240,11 @@
       box-shadow !important;
     transition-duration: 120ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The scroll reveal hides its element until the animation runs, so the
+     animation cannot simply be cancelled or the content never appears. */
+  .reveal {
+    opacity: 1;
   }
 }

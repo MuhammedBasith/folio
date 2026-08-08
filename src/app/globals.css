@@ -26,4 +26,14 @@
 @import "../styles/theme.css";
 @import "../styles/base.css";
 
-@custom-variant dark (&:is(.dark *));
+/**
+ * The theme is carried by an attribute on <html>, not a class, because the
+ * inline script in `layout.tsx` has to set it before first paint and an
+ * attribute is the thing a `data-theme` selector, `color-scheme` and the view
+ * transition can all key off consistently.
+ *
+ * Almost nothing in this codebase needs the variant: components read semantic
+ * tokens, which already swap themselves. It exists for the handful of cases
+ * where a whole treatment differs rather than a value.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));

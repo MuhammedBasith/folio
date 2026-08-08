@@ -5,7 +5,7 @@
  * reference only this layer, which means a palette change happens in one file
  * and nowhere else.
  *
- * Two decisions are encoded here and worth stating out loud:
+ * Three decisions are encoded here and worth stating out loud:
  *
  * 1. Elevation is expressed as TINT, not shadow. Surfaces separate from each
  *    other by getting fractionally darker and by carrying a hairline border.
@@ -13,12 +13,25 @@
  *    (dialogs, dropdowns). A drop shadow on every card is the single loudest
  *    tell of generated UI.
  *
- * 2. The accent is black. Not blue, not purple. Selection, primary action and
- *    active state are all rendered in ink, so the four status colours are the
- *    only chroma on screen and therefore read instantly as meaning.
+ * 2. The action colour is ink. Not blue, not the brand coral. Selection,
+ *    primary action and active state are all rendered in ink, so the four
+ *    status colours are the only chroma inside the product and therefore read
+ *    instantly as meaning.
+ *
+ * 3. Colour lives on editorial surfaces. The `wash-*` tokens exist for the
+ *    landing page, where a tinted panel is doing a job (separating an idea)
+ *    rather than decorating a tool. That is the line: the marketing surface may
+ *    be warm, the money screen stays quiet.
+ *
+ * Dark values live in the `[data-theme="dark"]` block at the bottom. The
+ * attribute is stamped on <html> before first paint by the inline script in
+ * `src/app/layout.tsx`, so there is no flash and no second copy of the palette
+ * under a media query.
  */
 
 :root {
+  color-scheme: light;
+
   /* Surfaces ----------------------------------------------------------- */
   --surface-page: var(--n-0);
   --surface-raised: var(--n-25);
@@ -26,12 +39,23 @@
   --surface-overlay: var(--n-0);
   --surface-inverse: var(--n-900);
 
+  /* Editorial washes: tinted section grounds for the landing page. */
+  --wash-ember: var(--ember-50);
+  --wash-ember-line: var(--ember-100);
+  --wash-sage: var(--sage-50);
+  --wash-sage-line: var(--sage-100);
+  --wash-slate: var(--slate-50);
+  --wash-slate-line: var(--slate-100);
+
   /* Text --------------------------------------------------------------- */
   --text-primary: var(--n-900);
   --text-secondary: var(--n-600);
   --text-tertiary: var(--n-500);
   --text-disabled: var(--n-400);
   --text-inverse: var(--n-25);
+
+  /* Brand ink, for the one or two editorial moments that carry the accent. */
+  --text-brand: var(--ember-700);
 
   /* Lines -------------------------------------------------------------- */
   /* subtle: dividers inside a container that already has a border */
@@ -101,6 +125,25 @@
     0 4px 8px -2px oklch(0.145 0.002 75 / 0.06),
     0 16px 32px -8px oklch(0.145 0.002 75 / 0.1);
 
+  /* The scrim behind a dialog. Semantic, because it inverts between themes. */
+  --overlay-scrim: oklch(0.145 0.002 75 / 0.22);
+
+  /**
+   * Control relief.
+   *
+   * A single inset hairline of light along the top edge, which is what makes a
+   * filled button read as a physical cap rather than a coloured rectangle. It
+   * is one pixel and nobody will ever consciously see it; take it away and the
+   * button goes flat.
+   */
+  --relief-raised: inset 0 1px 0 oklch(1 0 0 / 0.14);
+  --relief-soft: inset 0 1px 0 oklch(1 0 0 / 0.7);
+
+  /* Texture ------------------------------------------------------------ */
+  /* Grain darkens on paper. On a dark ground it has to lighten instead. */
+  --noise-blend: multiply;
+  --noise-opacity: 0.055;
+
   /* Motion ------------------------------------------------------------- */
   /**
    * Semantic pairings of duration and curve, so a component never has to pick
@@ -109,11 +152,14 @@
    */
   --motion-press: transform var(--duration-instant) var(--ease-out-quint);
   --motion-release: transform var(--duration-fast) var(--ease-spring);
-  --motion-hover: background-color var(--duration-fast) ease,
+  --motion-hover:
+    background-color var(--duration-fast) ease,
     border-color var(--duration-fast) ease, color var(--duration-fast) ease;
-  --motion-popover: opacity var(--duration-base) var(--ease-out-quint),
+  --motion-popover:
+    opacity var(--duration-base) var(--ease-out-quint),
     transform var(--duration-base) var(--ease-out-quint);
-  --motion-dialog: opacity var(--duration-slow) var(--ease-out-quint),
+  --motion-dialog:
+    opacity var(--duration-slow) var(--ease-out-quint),
     transform var(--duration-slow) var(--ease-out-quint);
 
   /* Layout ------------------------------------------------------------- */
@@ -130,63 +176,78 @@
 /**
  * Dark theme.
  *
- * Not shipped behind a toggle: every reference for this product is light, and
- * a half-tuned dark mode is worse than none. It is defined anyway so the app
- * degrades coherently rather than illegibly if `.dark` is ever applied.
+ * Not an inversion. Three things are deliberately asymmetric, because light
+ * behaves asymmetrically:
  *
- * Note the inversions that are NOT symmetrical: raised surfaces get LIGHTER
- * than the page here (light travels up), and hairlines become translucent
- * white rather than a fixed grey so they survive over any surface.
+ * - Raised surfaces get LIGHTER than the page, not darker. Light travels up.
+ * - Hairlines become translucent white rather than a fixed grey, so one line
+ *   token works over every surface instead of needing a variant per depth.
+ * - Status tints go from near-white washes to muted, desaturated grounds. The
+ *   light tints would glow on a dark page and pull the eye off the figures.
+ *
+ * The page is warm charcoal rather than black. True black next to a white
+ * dialog is a hard edge the eye has to fight, and it makes the grain invisible.
  */
-.dark {
-  --surface-page: var(--n-950);
-  --surface-raised: oklch(0.19 0.003 75);
-  --surface-sunken: oklch(0.17 0.002 75);
-  --surface-overlay: oklch(0.21 0.003 75);
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface-page: oklch(0.163 0.003 75);
+  --surface-raised: oklch(0.196 0.004 75);
+  --surface-sunken: oklch(0.142 0.003 75);
+  --surface-overlay: oklch(0.218 0.004 75);
   --surface-inverse: var(--n-50);
 
+  --wash-ember: oklch(0.235 0.032 34);
+  --wash-ember-line: oklch(0.315 0.055 32);
+  --wash-sage: oklch(0.225 0.02 168);
+  --wash-sage-line: oklch(0.3 0.032 168);
+  --wash-slate: oklch(0.228 0.018 246);
+  --wash-slate-line: oklch(0.3 0.03 246);
+
   --text-primary: var(--n-50);
-  --text-secondary: var(--n-400);
-  --text-tertiary: var(--n-500);
-  --text-disabled: var(--n-600);
+  --text-secondary: oklch(0.735 0.006 75);
+  --text-tertiary: oklch(0.6 0.006 75);
+  --text-disabled: oklch(0.47 0.005 75);
   --text-inverse: var(--n-950);
 
-  --line-subtle: oklch(1 0 0 / 0.06);
-  --line-default: oklch(1 0 0 / 0.11);
-  --line-strong: var(--n-100);
+  --text-brand: var(--ember-300);
+
+  --line-subtle: oklch(1 0 0 / 0.07);
+  --line-default: oklch(1 0 0 / 0.13);
+  --line-strong: oklch(1 0 0 / 0.42);
 
   --action-primary: var(--n-50);
-  --action-primary-hover: var(--n-200);
+  --action-primary-hover: var(--n-0);
   --action-primary-ink: var(--n-950);
 
-  --action-secondary: oklch(1 0 0 / 0.04);
-  --action-secondary-hover: oklch(1 0 0 / 0.08);
+  --action-secondary: oklch(1 0 0 / 0.05);
+  --action-secondary-hover: oklch(1 0 0 / 0.1);
   --action-secondary-ink: var(--n-50);
 
-  --action-ghost-hover: oklch(1 0 0 / 0.06);
-  --action-ghost-ink: var(--n-300);
+  --action-ghost-hover: oklch(1 0 0 / 0.07);
+  --action-ghost-ink: oklch(0.78 0.006 75);
 
-  --action-danger: oklch(0.62 0.19 27);
-  --action-danger-hover: oklch(0.67 0.19 27);
+  --action-danger: oklch(0.585 0.19 27);
+  --action-danger-hover: oklch(0.64 0.19 27);
   --action-danger-ink: var(--n-0);
 
-  --focus-ring: var(--n-200);
+  --focus-ring: oklch(0.85 0.005 75);
 
-  --status-pending-tint: oklch(1 0 0 / 0.06);
-  --status-pending-line: oklch(1 0 0 / 0.12);
-  --status-pending-ink: var(--n-400);
+  --status-pending-tint: oklch(1 0 0 / 0.07);
+  --status-pending-line: oklch(1 0 0 / 0.13);
+  --status-pending-ink: oklch(0.72 0.006 75);
 
-  --status-partial-tint: oklch(0.32 0.055 70);
-  --status-partial-line: oklch(0.42 0.08 70);
-  --status-partial-ink: oklch(0.86 0.09 82);
+  --status-partial-tint: oklch(0.288 0.048 72);
+  --status-partial-line: oklch(0.375 0.07 72);
+  --status-partial-ink: oklch(0.835 0.095 82);
 
-  --status-paid-tint: oklch(0.3 0.05 158);
-  --status-paid-line: oklch(0.4 0.07 158);
-  --status-paid-ink: oklch(0.85 0.11 158);
+  --status-paid-tint: oklch(0.272 0.042 158);
+  --status-paid-line: oklch(0.355 0.06 158);
+  --status-paid-ink: oklch(0.825 0.105 158);
 
-  --status-overdue-tint: oklch(0.31 0.07 25);
-  --status-overdue-line: oklch(0.42 0.11 25);
-  --status-overdue-ink: oklch(0.84 0.1 25);
+  --status-overdue-tint: oklch(0.282 0.062 25);
+  --status-overdue-line: oklch(0.372 0.095 25);
+  --status-overdue-ink: oklch(0.815 0.105 25);
 
   --feedback-error-tint: var(--status-overdue-tint);
   --feedback-error-line: var(--status-overdue-line);
@@ -197,9 +258,19 @@
   --feedback-success-ink: var(--status-paid-ink);
 
   /* Shadows read as noise on dark surfaces, so elevation leans on tint. */
-  --elevation-raised: 0 1px 2px oklch(0 0 0 / 0.3);
+  --elevation-raised: 0 1px 2px oklch(0 0 0 / 0.34);
   --elevation-overlay:
     0 1px 1px oklch(0 0 0 / 0.3),
-    0 8px 16px -4px oklch(0 0 0 / 0.4),
+    0 8px 16px -4px oklch(0 0 0 / 0.42),
     0 24px 48px -12px oklch(0 0 0 / 0.5);
+
+  /* Heavier here: the page is already dark, so a light scrim would not read. */
+  --overlay-scrim: oklch(0.09 0.002 75 / 0.62);
+
+  /* The primary button is near-white here, so its relief has to darken. */
+  --relief-raised: inset 0 -1px 0 oklch(0 0 0 / 0.14);
+  --relief-soft: inset 0 1px 0 oklch(1 0 0 / 0.06);
+
+  --noise-blend: screen;
+  --noise-opacity: 0.035;
 }

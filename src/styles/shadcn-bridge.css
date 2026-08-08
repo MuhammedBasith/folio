@@ -63,9 +63,9 @@
 }
 
 /**
- * No `.dark` block is needed. Every value above dereferences a semantic token,
- * and those already swap under `.dark` in `tokens.css`. Restating them here
- * would create a second place to forget.
+ * No dark block is needed. Every value above dereferences a semantic token, and
+ * those already swap under `[data-theme="dark"]` in `tokens.css`. Restating
+ * them here would create a second place to forget.
  */
 
 @theme inline {

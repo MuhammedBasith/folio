@@ -55,12 +55,23 @@
   --color-ink-disabled: var(--text-disabled);
   --color-ink-inverse: var(--text-inverse);
 
+  --color-ink-brand: var(--text-brand);
+
   /* Colour: surfaces --------------------------------------------------- */
   --color-surface: var(--surface-page);
   --color-surface-raised: var(--surface-raised);
   --color-surface-sunken: var(--surface-sunken);
   --color-surface-overlay: var(--surface-overlay);
   --color-surface-inverse: var(--surface-inverse);
+  --color-scrim: var(--overlay-scrim);
+
+  /* Colour: editorial washes ------------------------------------------- */
+  --color-wash-ember: var(--wash-ember);
+  --color-wash-ember-line: var(--wash-ember-line);
+  --color-wash-sage: var(--wash-sage);
+  --color-wash-sage-line: var(--wash-sage-line);
+  --color-wash-slate: var(--wash-slate);
+  --color-wash-slate-line: var(--wash-slate-line);
 
   /* Colour: lines ------------------------------------------------------ */
   --color-line: var(--line-default);
@@ -160,10 +171,22 @@
   --text-caption--line-height: 1.45;
   --text-caption--letter-spacing: 0em;
 
-  /* The tiny eyebrow labels the reference dashboards lean on. */
+  /**
+   * The small labels above a field or a section.
+   *
+   * NOT UPPERCASE, and the tracking changed with that decision. Letter-spaced
+   * capitals are a shortcut to looking designed, and they cost real legibility:
+   * capitals have no ascenders or descenders, so the word loses the silhouette
+   * the eye actually reads, and every label ends up shouting at the same volume
+   * as every other. Sentence case at 11px in a muted ink says "this is a label"
+   * just as clearly and reads at a glance.
+   *
+   * With the capitals gone the 0.07em tracking that made them breathe becomes
+   * an affectation, so it drops to almost nothing.
+   */
   --text-label: 0.6875rem;
-  --text-label--line-height: 1.2;
-  --text-label--letter-spacing: 0.07em;
+  --text-label--line-height: 1.35;
+  --text-label--letter-spacing: 0.004em;
   --text-label--font-weight: 500;
 
   /* Money. Paired with `tabular-nums` so columns align to the decimal. */
@@ -178,6 +201,14 @@
   /* Elevation ---------------------------------------------------------- */
   --shadow-raised: var(--elevation-raised);
   --shadow-overlay: var(--elevation-overlay);
+  /**
+   * Relief is registered in the INSET shadow namespace, not the shadow one, so
+   * `inset-shadow-relief` composes with `shadow-raised` on the same element.
+   * Under `--shadow-*` the two would overwrite each other and a raised control
+   * could not also have a lit top edge.
+   */
+  --inset-shadow-relief: var(--relief-raised);
+  --inset-shadow-relief-soft: var(--relief-soft);
 
   /**
    * Layout.
