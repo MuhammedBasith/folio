@@ -404,9 +404,10 @@ order exists.
 ## Testing
 
 ```
-96  unit tests         pure logic, no I/O, ~200ms
-30  integration tests  real PostgreSQL, real transactions, real locks
-47  smoke checks       end-to-end over HTTP against a running server
+102  unit tests         pure logic, no I/O, ~200ms
+30   integration tests  real PostgreSQL, real transactions, real locks
+47   smoke checks       end-to-end over HTTP against a running server
+32   screenshots        every page, both themes, desktop and phone
 ```
 
 ### Running them
@@ -419,8 +420,15 @@ cp .env.example .env.test   # point DATABASE_URL at crossval_test
 bun run test:integration    # refuses to run unless the URL contains "test"
 
 bun run dev &
-bun scripts/smoke.mjs
+bun run smoke
+bun run shoot             # writes .screenshots/, fails on any console error
 ```
+
+`bun run shoot` exists because the other three cannot see. A class-merging bug
+once rendered the primary button as black text on a black background, and the
+typechecker, the linter and every unit test passed straight through it. The only
+thing that catches that class of fault is looking at the pixels, so looking at
+the pixels is a command.
 
 ### These tests were verified by mutating the source
 
@@ -437,6 +445,9 @@ working code to confirm the suite catches it:
 | **Remove `FOR UPDATE` from the payment lock** | **2** |
 | **Remove the row lock from `updateOrder` / `deleteOrder`** | **3** |
 | Revert the `cn()` fix | 9 |
+| Rank part paid below pending in the list sort | 1 |
+| Sort settled orders oldest first | 1 |
+| Put overdue last in the list sort | 2 |
 
 ### A critical bug found by adversarial review
 
@@ -513,37 +524,82 @@ primitives.css     raw values, referenced by nothing but tokens
 tokens.css         semantic layer, named by job, the app's vocabulary
 shadcn-bridge.css  re-points vendor variables at the semantic layer
 theme.css          exposes tokens to Tailwind as utility classes
-base.css           global defaults, press feedback, reduced motion
+base.css           global defaults, press feedback, grain, reduced motion
 ```
 
 `globals.css` holds no values at all, only ordered imports. A palette change
-happens in one file. `/tokens` renders the whole system as a live reference.
+happens in one file, and both themes swap together because every component
+reads the middle tier and nothing else. `/tokens` renders the whole system as a
+live reference, with a theme toggle in its header: flip it and every swatch,
+control and animation on the page moves at once.
+
+Brand assets are generated rather than hand-exported. `bun run brand` renders
+the favicon, app icons, maskable icon and social card from the mark geometry in
+`src/components/brand/mark.tsx`, and converts the gradient plates in
+`assets/gradients` to WebP. One command, and every raster stays consistent with
+the source.
 
 A few decisions worth stating:
 
+- **Both themes are first class.** The palette swaps under `[data-theme="dark"]`,
+  stamped on `<html>` by a blocking inline script before first paint, so a dark
+  reader never sees a white frame. The dark values are not an inversion: raised
+  surfaces get lighter rather than darker, because light travels up, and
+  hairlines become translucent white so one token works over any depth.
+- **The theme toggle reveals rather than crossfades.** A circle of the new theme
+  expands from the exact pixel that was clicked, via the View Transitions API.
+  Firefox has not shipped it and reduced-motion users opt out, so both simply
+  flip the attribute.
 - **The type scale is deliberately small.** Body is 14px, secondary text 13px,
   metadata 12px, and section headings 17px. This is a dense financial tool, and
   a 36px heading leaves no room to make anything else feel important. Hierarchy
   comes from weight, colour and space.
+- **Nothing is set in capitals.** Letter-spaced uppercase labels are a shortcut
+  to looking designed and they cost real legibility: capitals have no ascenders
+  or descenders, so the word loses the silhouette the eye actually reads.
 - **Elevation is tint, not shadow.** Surfaces separate by getting fractionally
   darker and carrying a hairline border. Shadows are reserved for things that
-  genuinely float (dialogs, dropdowns).
-- **The accent is ink.** Primary action, selection and active state are all
-  black, which leaves the four status colours as the only chroma on screen, so
-  colour reads instantly as information rather than decoration.
+  genuinely float (dialogs, popovers).
+- **Filled controls carry relief.** One inset highlight along the top edge, in
+  the `inset-shadow` namespace so it composes with a drop shadow rather than
+  replacing it. Nobody consciously sees it; remove it and the button reads as a
+  coloured rectangle.
+- **Press feedback is physical.** 2% down in 100ms with a hard ease-out, and the
+  relief goes out at the same time, which is what a key does when it drops below
+  the plane of the light. Release takes 160ms with a slight overshoot. The
+  travel is 2% rather than 3% because on a wide button 3% moves each edge far
+  enough to read as the layout shifting rather than as pressure.
+- **The accent inside the product is ink.** Primary action, selection and active
+  state are all black, which leaves the four status colours as the only chroma
+  on a money screen, so colour reads instantly as information.
+- **Brand colour lives on the landing page only.** The three washes are sampled
+  from the gradient photographs in `assets/gradients` rather than picked from a
+  colour wheel, which is why they agree with the artwork and with each other.
+- **The gradients are photographs, not CSS.** A generated gradient is
+  mathematically smooth, which is exactly what the eye reads as synthetic, and
+  it bands on an 8-bit display. A photograph of coloured light has grain and
+  drift in it, which is what makes light look like light.
+- **Grain is on everything.** A fixed fractal-noise tile at 5.5%, multiplying on
+  paper and screening on charcoal. It is the difference between a large flat
+  field reading as a printed surface and reading as a screenshot.
 - **Status colour is never the only signal.** Every badge carries a label and a
   dot as well, so the four states remain distinguishable without colour vision.
-- **Press feedback is asymmetric.** 100ms down with a hard ease-out, 160ms back
-  with a slight overshoot. Fast acknowledgement, unhurried settle. Bounce is
-  kept low because this is a money screen.
+- **Status is a dot in lists and a pill only on a detail page.** Forty tinted
+  pills stacked down a table read as decoration; a dot carries the same
+  information at a fraction of the weight and keeps the column scannable.
 - **The status filter's indicator travels.** A highlight that teleports says
   nothing about the relationship between where you were and where you are. It
   is one element driven by measurement, not a background class toggled per
   option, which is what makes the motion continuous. It does not animate on
   first paint, because the first position is not a change.
-- **Status is a dot in lists and a pill only on a detail page.** Forty tinted
-  pills stacked down a table read as decoration; a dot carries the same
-  information at a fraction of the weight and keeps the column scannable.
+- **The date field is hand-rolled.** `<input type="date">` renders differently
+  in every browser, shows a locale-dependent numeric format that means different
+  dates in different countries, and cannot be styled. On a screen where the due
+  date decides whether an order reads as overdue, an ambiguous date format is a
+  correctness problem.
+- **Layout never shifts.** The scrollbar gutter is reserved so opening a dialog
+  cannot widen the viewport, and pending button labels are stacked in one grid
+  cell so "Create order" becoming "Creating" cannot change a button's width.
 - **Radius is a five-step scale**, not one value everywhere. Small controls sit
   tighter than the panels containing them.
 - **Reduced motion is surgical.** Movement is removed because that is what
