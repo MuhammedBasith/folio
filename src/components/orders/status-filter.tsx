@@ -155,7 +155,11 @@ export function StatusFilter({
           : undefined
       }
       className={cn(
-        "relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-md border border-line bg-surface-sunken p-0.5",
+        // A recessed track, so the raised indicator has something to sit on.
+        // The two used to be a hair apart in light mode and the selected tab
+        // was, in the user's words, not visible at all: white on near-white,
+        // with only a shadow to separate them.
+        "relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-lg border border-line bg-surface-sunken p-1",
         "transition-opacity duration-160 data-pending:opacity-70",
         // Hide the scrollbar itself. The mask above is the affordance, and a
         // native bar under a 30px strip is thicker than the content.
@@ -166,9 +170,21 @@ export function StatusFilter({
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute top-0.5 bottom-0.5 left-0 rounded-[5px] bg-surface shadow-raised",
-            indicator.animate &&
-              "transition-[transform,width] duration-220 ease-out-quint",
+            "pointer-events-none absolute top-1 bottom-1 left-0 rounded-md",
+            // Raised, bordered and lit along the top edge: the same treatment
+            // every other raised control in the product gets, so the selected
+            // tab reads as a physical cap on a recessed track rather than as a
+            // slightly different shade of the same grey.
+            "bg-surface-raised shadow-raised inset-shadow-relief-soft",
+            "border border-line-strong/12",
+            indicator.animate
+              ? "transition-[transform,width] duration-220 ease-out-quint"
+              : // First placement is an ENTRANCE, not a move. It scales up in
+                // place rather than sliding in from the left edge, because the
+                // first position is not a change from anywhere. `scale` is used
+                // as its own property so it composes with the inline
+                // `translateX` instead of fighting it.
+                "indicator-in",
           )}
           style={{
             transform: `translateX(${indicator.x}px)`,
@@ -192,11 +208,15 @@ export function StatusFilter({
             aria-pressed={selected}
             title={option.description}
             className={cn(
-              "relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[5px] px-2.5 py-1",
-              "text-caption font-medium whitespace-nowrap",
+              "relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5",
+              "text-caption whitespace-nowrap",
               "transition-colors duration-160 ease-out-quint",
               "focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-(--focus-ring)",
-              selected ? "text-ink" : "text-ink-muted hover:text-ink",
+              // Weight carries the selection as well as the indicator does, so
+              // it still reads when the tint alone is ambiguous.
+              selected
+                ? "font-medium text-ink"
+                : "font-normal text-ink-muted hover:text-ink",
             )}
           >
             {option.label}

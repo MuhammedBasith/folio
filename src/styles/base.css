@@ -264,3 +264,27 @@ html[data-theme-vt]::view-transition-group(root) {
     opacity: 1;
   }
 }
+
+/**
+ * The segmented control's indicator, appearing for the first time.
+ *
+ * Only `opacity` and `scale` move. `scale` is set as its own property rather
+ * than through `transform`, because the element already carries an inline
+ * `transform: translateX(...)` that positions it, and a keyframe animating
+ * `transform` would overwrite that and slam the indicator to the left edge for
+ * the duration of the animation.
+ */
+@utility indicator-in {
+  animation: indicator-in var(--duration-slow) var(--ease-spring) backwards;
+}
+
+@keyframes indicator-in {
+  from {
+    opacity: 0;
+    scale: 0.86;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
