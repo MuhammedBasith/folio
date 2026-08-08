@@ -1,19 +1,36 @@
-import * as React from "react"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
-import { cn } from "@/lib/utils"
-
+/**
+ * Input.
+ *
+ * `aria-invalid` drives the error styling rather than a separate prop, so the
+ * visual state and the state announced to a screen reader cannot disagree.
+ *
+ * `text-base` below the `sm` breakpoint is not a style choice: iOS Safari zooms
+ * the viewport when a focused input's font size is under 16px, and the page
+ * never zooms back out.
+ */
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (
     <input
       type={type}
       data-slot="input"
       className={cn(
-        "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-base transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-        className
+        "flex h-10 w-full min-w-0 rounded-md border border-line bg-surface px-3 py-2",
+        "text-base sm:text-body-sm text-ink",
+        "placeholder:text-ink-disabled",
+        "transition-[border-color,box-shadow] duration-[160ms] ease-out-quint",
+        "hover:border-line-strong/30",
+        "focus-visible:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]/12",
+        "disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-disabled",
+        "aria-invalid:border-feedback-error-line aria-invalid:ring-2 aria-invalid:ring-feedback-error-line/25",
+        "file:inline-flex file:border-0 file:bg-transparent file:text-body-sm file:font-medium",
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
-export { Input }
+export { Input };
