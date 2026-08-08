@@ -339,6 +339,45 @@ async function main() {
     csv.text.startsWith("reference,customer,due_date,status"),
     csv.text.slice(0, 60));
 
+  /* ---- document shell ---- */
+  //
+  // These check the HTML the browser actually receives, which nothing else in
+  // this repo does. The pre-paint theme script once shipped as
+  // `localStorage.getItem(undefined)` because the root layout imported its
+  // storage key from a "use client" module, and a Server Component importing a
+  // non-component value from a client module gets `undefined`. Nothing errored.
+  // The typechecker, the linter, the unit tests and the screenshot pass all
+  // went straight through it, and the only symptom was that an explicit theme
+  // choice quietly failed to survive a refresh.
+  console.log("\nDocument shell");
+
+  const shell = await call("/login");
+  check("login page renders", shell.status === 200, `got ${shell.status}`);
+
+  const inlineScripts = [
+    ...shell.text.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g),
+  ]
+    .map((match) => match[1])
+    // Next streams the RSC payload through `self.__next_f.push`, and that
+    // payload legitimately contains the string "undefined" for any absent
+    // prop. Only scripts this codebase authored are interesting here.
+    .filter((body) => !body.includes("__next_f"));
+
+  const themeScript = inlineScripts.find((body) =>
+    body.includes("localStorage.getItem"),
+  );
+
+  check("the pre-paint theme script is inlined in the document",
+    themeScript !== undefined);
+  check("the theme script reads a real storage key",
+    themeScript?.includes('localStorage.getItem("folio-theme")') === true,
+    themeScript?.slice(0, 80));
+  check("no inline script interpolated an undefined value",
+    inlineScripts.every((body) => !body.includes("undefined")),
+    inlineScripts.find((body) => body.includes("undefined"))?.slice(0, 80));
+  check("the document opens with an explicit theme",
+    /<html[^>]+data-theme="(light|dark)"/.test(shell.text));
+
   /* ---- summary ---- */
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed === 0 ? 0 : 1);
