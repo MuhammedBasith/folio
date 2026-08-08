@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BusyLabel } from "@/components/ui/busy-label";
+import { StableLabel } from "@/components/ui/stable-label";
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -259,7 +259,7 @@ export function OrderForm() {
             every heading is six pixels left of its column and the grid reads as
             slightly broken without it being obvious why.
           */}
-          <div className="hidden border-b border-line-subtle bg-surface-sunken/45 px-3 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:gap-3">
+          <div className="hidden border-b border-line-subtle bg-surface-inset px-3 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:gap-3">
             <span className="px-1.5 text-caption text-ink-faint">
               Description
             </span>
@@ -375,7 +375,7 @@ export function OrderForm() {
             })}
           </ul>
 
-          <div className="flex items-center justify-between gap-4 border-t border-line-subtle bg-surface-sunken/35 px-3 py-2">
+          <div className="flex items-center justify-between gap-4 border-t border-line-subtle bg-surface-inset/70 px-3 py-2">
             <button
               type="button"
               onClick={addLine}
@@ -431,7 +431,10 @@ export function OrderForm() {
 
       <div className="mt-8 flex items-center gap-2 border-t border-line-subtle pt-5">
         <Button type="submit" disabled={busy}>
-          <BusyLabel busy={busy} idle="Create order" pending="Creating" />
+          <StableLabel
+            options={["Create order", "Creating"]}
+            active={busy ? "Creating" : "Create order"}
+          />
         </Button>
         <Button
           type="button"

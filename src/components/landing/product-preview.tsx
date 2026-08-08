@@ -91,7 +91,7 @@ export function ProductPreview() {
 
           {/* ---- The rows ---- */}
           <div className="border-t border-line">
-            <div className="hidden grid-cols-[6rem_minmax(0,1fr)_7.5rem_7rem_7rem_5rem] gap-3 border-b border-line-subtle bg-surface-sunken/50 px-4 py-2.5 md:grid">
+            <div className="hidden grid-cols-[6rem_minmax(0,1fr)_7.5rem_7rem_7rem_5rem] gap-3 border-b border-line-subtle bg-surface-inset px-4 py-2.5 md:grid">
               {["Ref", "Customer", "Status", "Paid", "Due", "By"].map(
                 (heading, index) => (
                   <span

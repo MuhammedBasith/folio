@@ -100,7 +100,7 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
             amount due and due date. Each row links to the order.
           </caption>
           <thead>
-            <tr className="border-b border-line-subtle bg-surface-sunken/45">
+            <tr className="border-b border-line-subtle bg-surface-inset">
               <Th className="w-24 text-left">Ref</Th>
               <Th className="text-left">Customer</Th>
               <Th className="w-30 text-left">Status</Th>
@@ -136,7 +136,7 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
                   // the row, which is what the hover state was already
                   // promising.
                   "group rise-in relative border-b border-line-subtle last:border-b-0",
-                  "transition-colors duration-120 hover:bg-surface-sunken/55",
+                  "transition-colors duration-120 hover:bg-surface-inset/60",
                 )}
               >
                 <Td className="text-caption text-ink-faint tabular-nums">

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { ApiError } from "@/server/api/errors";
 import { Money } from "@/components/money";
 import { StatusDot } from "@/components/status-badge";
+import { ChaseDialog } from "@/components/orders/chase-dialog";
 import { PaymentHistory } from "@/components/orders/payment-history";
 import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
 import { STATUS_DESCRIPTIONS, describeDueDate, formatDate } from "@/lib/format";
@@ -109,7 +110,22 @@ export default async function OrderDetailPage({
           </div>
         </div>
 
-        <RecordPaymentDialog orderId={order.id} dueCents={order.dueCents} />
+        {/* Chase sits BESIDE record payment because they are the two things
+            you can do about an unpaid order, and which one you want depends
+            entirely on whether the money has arrived. Both disappear together
+            once it has. */}
+        <div className="flex shrink-0 items-center gap-2">
+          <ChaseDialog
+            reference={order.reference}
+            customer={order.customer}
+            dueDate={order.dueDate}
+            totalCents={order.totalCents}
+            paidCents={order.paidCents}
+            dueCents={order.dueCents}
+            status={order.status}
+          />
+          <RecordPaymentDialog orderId={order.id} dueCents={order.dueCents} />
+        </div>
       </div>
 
       {/* ---- Notes ----
@@ -160,7 +176,7 @@ export default async function OrderDetailPage({
         <div className="mt-2 overflow-hidden rounded-xl border border-line bg-surface-raised">
           <table className="w-full border-collapse text-body-sm">
             <thead>
-              <tr className="border-b border-line-subtle bg-surface-sunken/45">
+              <tr className="border-b border-line-subtle bg-surface-inset">
                 <Th className="text-left">Description</Th>
                 <Th className="w-20 text-right">Qty</Th>
                 <Th className="w-32 text-right">Unit price</Th>
@@ -193,7 +209,7 @@ export default async function OrderDetailPage({
               ))}
             </tbody>
             <tfoot>
-              <tr className="border-t border-line bg-surface-sunken/55">
+              <tr className="border-t border-line bg-surface-inset">
                 <td
                   colSpan={3}
                   className="px-3 py-2.5 text-right text-caption text-ink-faint"

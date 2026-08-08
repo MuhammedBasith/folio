@@ -129,7 +129,7 @@ export function Exactness() {
               </div>
             ))}
 
-            <div className="flex justify-between bg-surface-sunken/70 px-4 py-2.5 text-ink">
+            <div className="flex justify-between bg-surface-inset px-4 py-2.5 text-ink">
               <span>Still due, in cents</span>
               <span className="tabular-nums">$0.01</span>
             </div>
