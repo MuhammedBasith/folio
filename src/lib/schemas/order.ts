@@ -12,10 +12,25 @@ import { MIN_PAYMENT_CENTS, ORDER_STATUSES } from "@/lib/domain/orders";
  * happens once, in one implementation.
  */
 
-/** Calendar date, no time component: "2026-08-15". */
+/**
+ * Calendar date, no time component: "2026-08-15".
+ *
+ * The year bounds are not arbitrary tidiness. PostgreSQL's `DATE` has no year
+ * zero, so "0000-01-01" passes every JavaScript check (`new Date` accepts it
+ * and it round-trips through `toISOString`) and is then rejected by the
+ * database. That surfaced as a 500 INTERNAL_ERROR on a request whose only fault
+ * was a typo, which is exactly the case a 422 exists for.
+ */
+const MIN_YEAR = 1900;
+const MAX_YEAR = 2999;
+
 export const dateStringSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format YYYY-MM-DD.")
+  .refine((value) => {
+    const year = Number(value.slice(0, 4));
+    return year >= MIN_YEAR && year <= MAX_YEAR;
+  }, `Enter a year between ${MIN_YEAR} and ${MAX_YEAR}.`)
   .refine((value) => {
     const parsed = new Date(`${value}T00:00:00.000Z`);
     // Round-trips only for real calendar dates, so 2026-02-30 is caught here
@@ -68,7 +83,32 @@ export const createOrderSchema = z.object({
     // and a total of zero that would immediately read as "paid".
     .min(1, "Add at least one line item.")
     .max(100, "An order cannot have more than 100 line items."),
-});
+})
+  /**
+   * Cap the AGGREGATE, not just each line.
+   *
+   * Every individual field can be within its own limit while the product of
+   * them is not: 100 lines x 100,000 quantity x $9,999,999.99 is 1e16, past
+   * `Number.MAX_SAFE_INTEGER`. `calculateOrderTotalCents` correctly refuses to
+   * return a lossy number and throws a `RangeError`, but by then the row is
+   * committed, so every subsequent read of that order (and of the list
+   * containing it) throws too. One accepted request could make an entire
+   * account permanently unreadable.
+   *
+   * Checked here so it is a 422 the client can act on rather than a 500 after
+   * the damage is done.
+   */
+  .refine(
+    (order) =>
+      order.lineItems.reduce(
+        (total, line) => total + line.quantity * line.unitPriceCents,
+        0,
+      ) <= MAX_AMOUNT_CENTS,
+    {
+      message: `The order total cannot exceed ${formatMoney(MAX_AMOUNT_CENTS)}.`,
+      path: ["lineItems"],
+    },
+  );
 
 /** Same shape as create: editing an order replaces its lines wholesale. */
 export const updateOrderSchema = createOrderSchema;
@@ -102,6 +142,17 @@ export const listOrdersQuerySchema = z.object({
     .union([orderStatusSchema, z.literal("all")])
     .optional()
     .transform((value) => (value === "all" ? undefined : value)),
+});
+
+/**
+ * CSV export date range. Both bounds optional, both validated when present.
+ *
+ * Unvalidated, a malformed bound silently produced an empty-but-successful
+ * export, which reads as "no orders in that period" rather than "you mistyped".
+ */
+export const exportRangeSchema = z.object({
+  from: dateStringSchema.optional(),
+  to: dateStringSchema.optional(),
 });
 
 export type LineItemInput = z.infer<typeof lineItemSchema>;
