@@ -42,11 +42,21 @@ async function createThousandDollarOrder(userId = ownerId) {
   });
 }
 
-function expectApiError(error: unknown): ApiError {
-  if (!(error instanceof ApiError)) {
+/**
+ * Asserts a promise rejects with an ApiError, and returns it narrowed.
+ *
+ * Written as a wrapper rather than `.catch(assert)` because catching widens the
+ * result type to `T | ApiError`, and more importantly a `.catch` would let a
+ * call that unexpectedly RESOLVED slip through as a pass.
+ */
+async function expectApiError(promise: Promise<unknown>): Promise<ApiError> {
+  try {
+    await promise;
+  } catch (error) {
+    if (error instanceof ApiError) return error;
     throw new Error(`Expected an ApiError, received: ${String(error)}`);
   }
-  return error;
+  throw new Error("Expected the call to reject, but it resolved.");
 }
 
 describe("the brief's sample scenario, over the real database", () => {
@@ -87,10 +97,12 @@ describe("over-payment rejection", () => {
   it("rejects one cent over the balance and names the maximum", async () => {
     const order = await createThousandDollarOrder();
 
-    const error = await recordPayment(ownerId, order.id, {
-      amountCents: 100_001,
-      paidOn: "2026-08-10",
-    }).catch((thrown) => expectApiError(thrown));
+    const error = await expectApiError(
+      recordPayment(ownerId, order.id, {
+        amountCents: 100_001,
+        paidOn: "2026-08-10",
+      }),
+    );
 
     expect(error.code).toBe("PAYMENT_EXCEEDS_BALANCE");
     expect(error.status).toBe(422);
@@ -204,10 +216,12 @@ describe("tenant isolation", () => {
   it("refuses to record a payment against another user's order", async () => {
     const order = await createThousandDollarOrder(ownerId);
 
-    const error = await recordPayment(otherOwnerId, order.id, {
-      amountCents: 10_000,
-      paidOn: "2026-08-10",
-    }).catch((thrown) => expectApiError(thrown));
+    const error = await expectApiError(
+      recordPayment(otherOwnerId, order.id, {
+        amountCents: 10_000,
+        paidOn: "2026-08-10",
+      }),
+    );
 
     expect(error.code).toBe("NOT_FOUND");
     expect(error.status).toBe(404);
@@ -219,9 +233,7 @@ describe("tenant isolation", () => {
   it("reports another user's order as not found rather than forbidden", async () => {
     const order = await createThousandDollarOrder(ownerId);
 
-    const error = await getOrder(otherOwnerId, order.id).catch((thrown) =>
-      expectApiError(thrown),
-    );
+    const error = await expectApiError(getOrder(otherOwnerId, order.id));
 
     // 404 not 403: a 403 would confirm the order exists.
     expect(error.status).toBe(404);

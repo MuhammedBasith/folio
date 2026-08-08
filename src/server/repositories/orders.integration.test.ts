@@ -37,11 +37,21 @@ function order(overrides: Partial<Parameters<typeof createOrder>[1]> = {}) {
   };
 }
 
-function expectApiError(error: unknown): ApiError {
-  if (!(error instanceof ApiError)) {
+/**
+ * Asserts a promise rejects with an ApiError, and returns it narrowed.
+ *
+ * Written as a wrapper rather than `.catch(assert)` because catching widens the
+ * result type to `T | ApiError`, and more importantly a `.catch` would let a
+ * call that unexpectedly RESOLVED slip through as a pass.
+ */
+async function expectApiError(promise: Promise<unknown>): Promise<ApiError> {
+  try {
+    await promise;
+  } catch (error) {
+    if (error instanceof ApiError) return error;
     throw new Error(`Expected an ApiError, received: ${String(error)}`);
   }
-  return error;
+  throw new Error("Expected the call to reject, but it resolved.");
 }
 
 describe("createOrder", () => {
@@ -222,11 +232,15 @@ describe("order locking", () => {
       paidOn: "2026-08-10",
     });
 
-    const error = await updateOrder(ownerId, created.id, {
-      customer: "Renamed",
-      dueDate: "2026-09-01",
-      lineItems: [{ description: "Cheaper", quantity: 1, unitPriceCents: 100 }],
-    }).catch((thrown) => expectApiError(thrown));
+    const error = await expectApiError(
+      updateOrder(ownerId, created.id, {
+        customer: "Renamed",
+        dueDate: "2026-09-01",
+        lineItems: [
+          { description: "Cheaper", quantity: 1, unitPriceCents: 100 },
+        ],
+      }),
+    );
 
     expect(error.code).toBe("ORDER_LOCKED");
     expect(error.status).toBe(409);
@@ -245,9 +259,7 @@ describe("order locking", () => {
       paidOn: "2026-08-10",
     });
 
-    const error = await deleteOrder(ownerId, created.id).catch((thrown) =>
-      expectApiError(thrown),
-    );
+    const error = await expectApiError(deleteOrder(ownerId, created.id));
 
     expect(error.code).toBe("ORDER_LOCKED");
     await expect(getOrder(ownerId, created.id)).resolves.toBeDefined();
@@ -268,11 +280,13 @@ describe("tenant isolation on writes", () => {
   it("refuses to update another user's order", async () => {
     const created = await createOrder(ownerId, order());
 
-    const error = await updateOrder(otherOwnerId, created.id, {
-      customer: "Hijacked",
-      dueDate: "2026-09-01",
-      lineItems: [{ description: "x", quantity: 1, unitPriceCents: 1 }],
-    }).catch((thrown) => expectApiError(thrown));
+    const error = await expectApiError(
+      updateOrder(otherOwnerId, created.id, {
+        customer: "Hijacked",
+        dueDate: "2026-09-01",
+        lineItems: [{ description: "x", quantity: 1, unitPriceCents: 1 }],
+      }),
+    );
 
     expect(error.status).toBe(404);
 
@@ -283,9 +297,7 @@ describe("tenant isolation on writes", () => {
   it("refuses to delete another user's order", async () => {
     const created = await createOrder(ownerId, order());
 
-    const error = await deleteOrder(otherOwnerId, created.id).catch((thrown) =>
-      expectApiError(thrown),
-    );
+    const error = await expectApiError(deleteOrder(otherOwnerId, created.id));
 
     expect(error.status).toBe(404);
     await expect(getOrder(ownerId, created.id)).resolves.toBeDefined();
