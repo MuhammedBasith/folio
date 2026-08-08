@@ -1,0 +1,186 @@
+/**
+ * Tier 3: the Tailwind bridge.
+ *
+ * Turns semantic tokens into utility classes. `inline` is required because
+ * every value here points at another custom property; without it Tailwind
+ * emits the variable reference rather than resolving it, which breaks under
+ * the `.dark` scope.
+ *
+ * Naming is editorial on purpose: `text-ink-muted` and `bg-surface-raised`
+ * describe the page, whereas `text-gray-600` describes a swatch. The former
+ * survives a palette change.
+ */
+
+/**
+ * Literals first. Radius and easing do not change between light and dark, and
+ * Tailwind owns both namespaces, so they are declared once here rather than
+ * being indirected through the semantic layer.
+ */
+@theme {
+  /**
+   * Radius: deliberately varied. Applying one radius to every element flattens
+   * hierarchy and is a documented tell of generated design. Small controls sit
+   * tighter than the panels containing them.
+   *
+   * Nesting rule: inner radius = outer radius minus the gap between them, so a
+   * 4px-inset element inside `rounded-lg` (12px) takes `rounded-md` (8px).
+   */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  /**
+   * Easing: the built-in CSS curves are too weak to read as intentional, so
+   * these are the stronger variants. `ease-in` is deliberately absent. It
+   * delays the first frame, which is the exact moment the user is watching.
+   */
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@theme inline {
+  /* Type families ------------------------------------------------------ */
+  --font-sans: var(--font-inter);
+  --font-heading: var(--font-instrument-serif);
+  --font-mono: var(--font-geist-mono);
+
+  /* Colour: text ------------------------------------------------------- */
+  --color-ink: var(--text-primary);
+  --color-ink-muted: var(--text-secondary);
+  --color-ink-faint: var(--text-tertiary);
+  --color-ink-disabled: var(--text-disabled);
+  --color-ink-inverse: var(--text-inverse);
+
+  /* Colour: surfaces --------------------------------------------------- */
+  --color-surface: var(--surface-page);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-inverse: var(--surface-inverse);
+
+  /* Colour: lines ------------------------------------------------------ */
+  --color-line: var(--line-default);
+  --color-line-subtle: var(--line-subtle);
+  --color-line-strong: var(--line-strong);
+
+  /* Colour: actions ---------------------------------------------------- */
+  --color-action: var(--action-primary);
+  --color-action-hover: var(--action-primary-hover);
+  --color-action-ink: var(--action-primary-ink);
+  --color-action-soft: var(--action-secondary);
+  --color-action-soft-hover: var(--action-secondary-hover);
+  --color-action-soft-ink: var(--action-secondary-ink);
+  --color-action-ghost-hover: var(--action-ghost-hover);
+  --color-action-ghost-ink: var(--action-ghost-ink);
+  --color-action-danger: var(--action-danger);
+  --color-action-danger-hover: var(--action-danger-hover);
+  --color-action-danger-ink: var(--action-danger-ink);
+
+  /* Colour: status ----------------------------------------------------- */
+  --color-status-pending-tint: var(--status-pending-tint);
+  --color-status-pending-line: var(--status-pending-line);
+  --color-status-pending-ink: var(--status-pending-ink);
+
+  --color-status-partial-tint: var(--status-partial-tint);
+  --color-status-partial-line: var(--status-partial-line);
+  --color-status-partial-ink: var(--status-partial-ink);
+
+  --color-status-paid-tint: var(--status-paid-tint);
+  --color-status-paid-line: var(--status-paid-line);
+  --color-status-paid-ink: var(--status-paid-ink);
+
+  --color-status-overdue-tint: var(--status-overdue-tint);
+  --color-status-overdue-line: var(--status-overdue-line);
+  --color-status-overdue-ink: var(--status-overdue-ink);
+
+  /* Colour: feedback --------------------------------------------------- */
+  --color-feedback-error-tint: var(--feedback-error-tint);
+  --color-feedback-error-line: var(--feedback-error-line);
+  --color-feedback-error-ink: var(--feedback-error-ink);
+  --color-feedback-success-tint: var(--feedback-success-tint);
+  --color-feedback-success-line: var(--feedback-success-line);
+  --color-feedback-success-ink: var(--feedback-success-ink);
+
+  /**
+   * Type scale.
+   *
+   * Not a uniform ramp. Display sizes are set in Instrument Serif with tight
+   * leading and negative tracking, because large serif text needs to close up
+   * to read as one shape. Body sizes carry a small negative tracking too:
+   * Inter is drawn slightly loose by default at UI sizes.
+   *
+   * `display-hero` uses clamp() rather than breakpoint jumps so the headline
+   * scales continuously instead of snapping at 768px.
+   */
+  --text-display-hero: clamp(2.75rem, 7vw, 4.5rem);
+  --text-display-hero--line-height: 0.98;
+  --text-display-hero--letter-spacing: -0.03em;
+  --text-display-hero--font-weight: 400;
+
+  --text-display-lg: clamp(2.25rem, 4.5vw, 3rem);
+  --text-display-lg--line-height: 1.03;
+  --text-display-lg--letter-spacing: -0.028em;
+  --text-display-lg--font-weight: 400;
+
+  --text-display: 2.25rem;
+  --text-display--line-height: 1.08;
+  --text-display--letter-spacing: -0.024em;
+  --text-display--font-weight: 400;
+
+  --text-display-sm: 1.75rem;
+  --text-display-sm--line-height: 1.16;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-sm--font-weight: 400;
+
+  --text-body-lg: 1.0625rem;
+  --text-body-lg--line-height: 1.6;
+  --text-body-lg--letter-spacing: -0.011em;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.6;
+  --text-body--letter-spacing: -0.009em;
+
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.55;
+  --text-body-sm--letter-spacing: -0.006em;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.5;
+  --text-caption--letter-spacing: -0.003em;
+
+  /* The tiny grey eyebrow labels the reference dashboards lean on. */
+  --text-label: 0.6875rem;
+  --text-label--line-height: 1.2;
+  --text-label--letter-spacing: 0.08em;
+  --text-label--font-weight: 500;
+
+  /* Money. Paired with `tabular-nums` so columns align to the decimal. */
+  --text-metric-lg: 1.875rem;
+  --text-metric-lg--line-height: 1.1;
+  --text-metric-lg--letter-spacing: -0.022em;
+
+  --text-metric: 1.125rem;
+  --text-metric--line-height: 1.25;
+  --text-metric--letter-spacing: -0.014em;
+
+  /* Elevation ---------------------------------------------------------- */
+  --shadow-raised: var(--elevation-raised);
+  --shadow-overlay: var(--elevation-overlay);
+
+  /**
+   * Layout.
+   *
+   * No `--container-prose` here on purpose. Tailwind ships `max-w-prose` as
+   * 65ch and it wins over a token of the same name. A character-based measure
+   * is the correct answer for a reading column anyway: it tracks the font
+   * rather than a fixed rem value, so the line length stays right if the type
+   * scale ever moves.
+   */
+  --container-content: var(--width-content);
+  --container-detail: var(--width-detail);
+  --container-form: var(--width-form);
+}
