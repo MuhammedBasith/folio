@@ -1,0 +1,140 @@
+/**
+ * Base layer and custom utilities.
+ *
+ * Deliberately small. Anything that belongs to a component belongs in that
+ * component, not here. What lives here is either a global default that every
+ * page depends on, or a behaviour that would be wrong to reimplement per
+ * component (press feedback, focus rings, reduced motion).
+ */
+
+@layer base {
+  * {
+    border-color: var(--line-default);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    /* Stops iOS Safari inflating text in landscape. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--surface-page);
+    color: var(--text-primary);
+    font-size: var(--text-body);
+    line-height: 1.6;
+    letter-spacing: -0.009em;
+  }
+
+  /**
+   * Headings never wrap to a lonely last word, and paragraphs never end on an
+   * orphan. Two properties, and long-form copy stops looking accidental.
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /**
+   * Instrument Serif is drawn for display sizes. Optical sizing keeps it from
+   * looking spindly when it is scaled down.
+   */
+  .font-heading {
+    font-optical-sizing: auto;
+  }
+
+  /**
+   * One focus treatment for the entire app. `:focus-visible` rather than
+   * `:focus` so a mouse click on a button does not leave a ring behind, while
+   * keyboard navigation always does.
+   */
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  ::selection {
+    background-color: var(--surface-inverse);
+    color: var(--text-inverse);
+  }
+
+  /* Money and any other aligned figure. Set once, inherited where it matters. */
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/**
+ * Press feedback.
+ *
+ * Asymmetric on purpose: the press registers in 100ms with a hard ease-out so
+ * acknowledgement feels instantaneous, and the release takes 160ms with a
+ * gentle overshoot so the control settles rather than snapping. Bounce is kept
+ * low (a 1.4 overshoot, not 1.7) because this is a money screen; a springy
+ * button here would read as a toy.
+ */
+@utility pressable {
+  transition: transform var(--duration-fast) var(--ease-spring);
+
+  &:active {
+    transform: scale(0.97);
+    transition-duration: var(--duration-instant);
+    transition-timing-function: var(--ease-out-quint);
+  }
+
+  &:disabled,
+  &[aria-disabled="true"] {
+    transform: none;
+  }
+}
+
+/**
+ * Entry animation for lists and cards. Staggering is applied by the consumer
+ * via `--stagger-index`, so a component decides its own rhythm without needing
+ * a variant per position.
+ */
+@utility rise-in {
+  animation: rise-in var(--duration-slow) var(--ease-out-quint) backwards;
+  animation-delay: calc(var(--stagger-index, 0) * 40ms);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    /* Never from scale(0): nothing in the world appears out of nothing. */
+    transform: translateY(6px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/**
+ * Reduced motion.
+ *
+ * Not a blanket kill. Movement (transform, translate) is removed because that
+ * is what triggers vestibular discomfort, while opacity and colour transitions
+ * are kept and merely shortened, because those carry meaning: they are how the
+ * interface says "this changed".
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color,
+      box-shadow !important;
+    transition-duration: 120ms !important;
+    scroll-behavior: auto !important;
+  }
+}
