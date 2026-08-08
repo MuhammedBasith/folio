@@ -36,10 +36,10 @@ const RULES = [
 
 export function StatusRule() {
   return (
-    <section id="the-rule" className="scroll-mt-24 border-t border-line">
+    <section id="the-rule" className="scroll-mt-24">
       <div className="mx-auto grid w-full max-w-content gap-10 px-5 py-20 md:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] md:items-start md:gap-16 md:px-8 md:py-24">
         <Reveal>
-          <p className="font-mono text-caption text-ink-faint">
+          <p className="text-caption text-ink-faint">
             The one hard part
           </p>
           <h2 className="mt-3 font-heading text-display-lg text-balance text-ink">
@@ -62,7 +62,7 @@ export function StatusRule() {
           <ol className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-surface-raised">
             {RULES.map((rule, index) => (
               <li key={rule.status} className="flex items-baseline gap-4 px-4 py-4">
-                <span className="font-mono text-caption text-ink-disabled">
+                <span className="text-caption text-ink-disabled">
                   {index + 1}
                 </span>
                 <div className="min-w-0">
@@ -92,10 +92,10 @@ export function StatusRule() {
  */
 export function Exactness() {
   return (
-    <section id="exact" className="scroll-mt-24 border-t border-line">
+    <section id="exact" className="scroll-mt-24">
       <div className="mx-auto grid w-full max-w-content gap-10 px-5 py-20 md:grid-cols-[minmax(0,23rem)_minmax(0,1fr)] md:items-start md:gap-16 md:px-8 md:py-24">
         <Reveal>
-          <p className="font-mono text-caption text-ink-faint">To the cent</p>
+          <p className="text-caption text-ink-faint">To the cent</p>
           <h2 className="mt-3 font-heading text-display-lg text-balance text-ink">
             Money is counted in whole cents, never in decimals.
           </h2>
@@ -113,7 +113,7 @@ export function Exactness() {
         </Reveal>
 
         <Reveal delayIndex={1}>
-          <div className="overflow-hidden rounded-xl border border-line bg-surface-raised font-mono text-body-sm">
+          <div className="overflow-hidden rounded-xl border border-line bg-surface-raised text-body-sm tabular-nums">
             {[
               ["Order total", "$100.00"],
               ["Payment", "$33.33"],
