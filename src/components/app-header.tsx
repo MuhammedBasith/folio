@@ -22,14 +22,26 @@ export function AppHeader({ email }: { email: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
+  const [signOutFailed, setSignOutFailed] = useState(false);
 
+  /**
+   * A failed sign-out must not look like a successful one.
+   *
+   * With only a `finally`, a network failure left the button back at "Sign
+   * out", the session cookie intact, and no indication that anything had gone
+   * wrong. On a shared machine that is the difference between believing you
+   * signed out and actually having done so.
+   */
   async function handleSignOut() {
     setSigningOut(true);
+    setSignOutFailed(false);
+
     try {
       await api.logout();
       router.replace("/login");
       router.refresh();
-    } finally {
+    } catch {
+      setSignOutFailed(true);
       setSigningOut(false);
     }
   }
@@ -72,9 +84,15 @@ export function AppHeader({ email }: { email: string }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-3">
-          <span className="hidden text-caption text-ink-faint sm:inline">
-            {email}
-          </span>
+          {signOutFailed ? (
+            <span role="alert" className="text-caption text-feedback-error-ink">
+              Sign out failed. You are still signed in.
+            </span>
+          ) : (
+            <span className="hidden text-caption text-ink-faint sm:inline">
+              {email}
+            </span>
+          )}
           <Button
             variant="ghost"
             size="sm"
