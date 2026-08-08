@@ -125,7 +125,17 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
                 key={order.id}
                 style={stagger(index)}
                 className={cn(
-                  "group rise-in border-b border-line-subtle last:border-b-0",
+                  // `relative` belongs on the ROW, not on the cells.
+                  //
+                  // This was the bug: with it on each `<td>`, the stretched
+                  // anchor's ::after took the reference cell as its containing
+                  // block and covered only that cell. The row looked clickable,
+                  // lit up on hover across its full width, and then did nothing
+                  // unless you happened to hit the eight characters of the
+                  // reference. Moving it up one level makes the ::after span
+                  // the row, which is what the hover state was already
+                  // promising.
+                  "group rise-in relative border-b border-line-subtle last:border-b-0",
                   "transition-colors duration-120 hover:bg-surface-sunken/55",
                 )}
               >
@@ -266,5 +276,5 @@ function Td({
   className?: string;
   children: React.ReactNode;
 }) {
-  return <td className={cn("relative px-3 py-2.5", className)}>{children}</td>;
+  return <td className={cn("px-3 py-2.5", className)}>{children}</td>;
 }
