@@ -44,8 +44,8 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
 
   return (
     <>
-      {/* ---- Phones ---- */}
-      <ul className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-surface-raised md:hidden">
+      {/* ---- Phones and small tablets ---- */}
+      <ul className="divide-y divide-line-subtle overflow-hidden rounded-xl border border-line bg-surface-raised lg:hidden">
         {visible.map((order, index) => (
           <li key={order.id} style={stagger(index)} className="rise-in">
             <Link
@@ -92,8 +92,16 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
         ))}
       </ul>
 
-      {/* ---- Tablet and up ---- */}
-      <div className="hidden overflow-hidden rounded-xl border border-line bg-surface-raised md:block">
+      {/*
+        ---- Laptop and up ----
+
+        `lg`, not `md`. The fixed columns come to 796px before the customer name
+        has any room at all, so at the 768px breakpoint the table overflowed its
+        own container by a couple of pixels and put a horizontal scrollbar on the
+        page. A breakpoint has to be chosen from the content's real minimum
+        width, not from which name sounds like "tablet".
+      */}
+      <div className="hidden overflow-hidden rounded-xl border border-line bg-surface-raised lg:block">
         <table className="w-full border-collapse text-body-sm">
           <caption className="sr-only">
             Orders, showing reference, customer, status, total, amount paid,
