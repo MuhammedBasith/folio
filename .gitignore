@@ -76,3 +76,6 @@ CLAUDE.md
 
 # prisma generated client
 /src/generated
+
+# test env
+.env.test
