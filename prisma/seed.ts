@@ -6,17 +6,16 @@ import bcrypt from "bcryptjs";
 /**
  * Demo data.
  *
- * Built so that opening the deployed app and signing in as the demo user shows
- * every status the product can produce, immediately, without anyone having to
- * create test data by hand. A reviewer landing on an empty dashboard cannot
- * evaluate the status logic at all.
+ * Signing in as the demo account shows every status the product can produce
+ * straight away, without anyone having to build test data by hand first. An
+ * empty dashboard demonstrates nothing.
  *
  * Dates are relative to the run date rather than hardcoded, so the overdue
- * order is genuinely overdue whenever the seed happens to be executed and the
- * demo does not rot.
+ * order is genuinely overdue whenever the seed happens to run and the demo
+ * never rots.
  */
 
-const DEMO_EMAIL = "demo@ledger.app";
+const DEMO_EMAIL = "demo@tally.app";
 const DEMO_PASSWORD = "demo1234";
 
 function daysFromNow(days: number): string {
