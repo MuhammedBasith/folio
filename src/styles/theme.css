@@ -76,6 +76,7 @@
   --color-surface-overlay: var(--surface-overlay);
   --color-surface-inverse: var(--surface-inverse);
   --color-surface-canvas: var(--surface-canvas);
+  --color-surface-inset: var(--surface-inset);
   --color-scrim: var(--overlay-scrim);
 
   /* Colour: editorial washes ------------------------------------------- */

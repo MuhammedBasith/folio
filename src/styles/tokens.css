@@ -40,6 +40,22 @@
   --surface-inverse: var(--n-900);
 
   /**
+   * A band inside a panel: a table header, a totals footer, a toolbar strip.
+   *
+   * IT IS NOT `surface-sunken`, AND THE DIFFERENCE ONLY SHOWS IN DARK MODE.
+   * Sunken means "further from the viewer", which in light is darker and in
+   * dark is darker too, because a recessed input should read as a well in both.
+   * A header band is not recessed; it is the same plane as its panel, marked
+   * out. Reusing sunken for it meant that in dark mode every table header came
+   * out darker than the table it sat on, which reads as a hole punched in the
+   * card rather than as a heading.
+   *
+   * So this steps in whichever direction is AWAY from the panel's own tint:
+   * a shade darker on paper, a shade lighter on charcoal.
+   */
+  --surface-inset: var(--n-100);
+
+  /**
    * The editorial ground, used by the landing page only.
    *
    * Warmer and a shade off white, because a marketing page is a printed page:
@@ -208,6 +224,8 @@
   --surface-inverse: var(--n-50);
   /* A hair lifted rather than warmer: warmth at this luminance goes muddy. */
   --surface-canvas: oklch(0.178 0.004 68);
+  /* Lighter than `surface-raised`, not darker. See the note on the token. */
+  --surface-inset: oklch(0.232 0.004 75);
 
   --wash-ember: oklch(0.235 0.032 34);
   --wash-ember-line: oklch(0.315 0.055 32);
