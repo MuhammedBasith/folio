@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { ApiError, unauthenticated, validationFailed } from "./errors";
 import {
+  WRITE_LIMIT,
+  enforce,
+  hit,
+  type RateLimitRule,
+} from "./rate-limit";
+import {
   type SessionPayload,
   readBearerToken,
   readSessionCookie,
@@ -150,15 +156,32 @@ type RouteContext<P> = { params: Promise<P> };
  * content-disposition headers without being forced through a JSON wrapper.
  */
 
+interface RouteOptions {
+  /**
+   * Rate limit this route by client address.
+   *
+   * Declared here rather than called at the top of each handler, because a
+   * limit a route can forget to apply is a limit that will eventually be
+   * forgotten. `scope` keys the bucket, so login and signup are counted
+   * separately and one does not exhaust the other.
+   */
+  rateLimit?: { scope: string; rule: RateLimitRule };
+}
+
 /** Wraps a public route so thrown errors become the standard envelope. */
 export function route<P = Record<string, never>>(
   handler: (request: Request, context: RouteContext<P>) => Promise<Response>,
+  options: RouteOptions = {},
 ) {
   return async (
     request: Request,
     context: RouteContext<P>,
   ): Promise<Response> => {
     try {
+      if (options.rateLimit) {
+        enforce(request, options.rateLimit.scope, options.rateLimit.rule);
+      }
+
       return await handler(request, context);
     } catch (error) {
       return toErrorResponse(error);
@@ -185,6 +208,33 @@ export function authedRoute<P = Record<string, never>>(
   ): Promise<Response> => {
     try {
       const session = await requireSession(request);
+
+      /**
+       * Writes are limited PER ACCOUNT, not per address, and reads are not
+       * limited at all.
+       *
+       * Per account because the caller has already proved who they are, and an
+       * address is the wrong unit once they have: two colleagues behind one
+       * office IP would share a budget they have no way to see. Reads are
+       * exempt because the dashboard is a read and throttling it would punish
+       * someone for refreshing.
+       *
+       * The ceiling is high enough that no human reaches it. It is here to stop
+       * a runaway script, not to police anyone's use of their own ledger.
+       */
+      if (request.method !== "GET" && request.method !== "HEAD") {
+        const result = hit(`write:${session.userId}`, WRITE_LIMIT);
+
+        if (!result.ok) {
+          throw new ApiError({
+            status: 429,
+            code: "RATE_LIMITED",
+            message: "That is a lot of changes at once. Give it a moment.",
+            details: { retryAfterSeconds: result.retryAfter },
+          });
+        }
+      }
+
       return await handler(request, { ...context, session });
     } catch (error) {
       return toErrorResponse(error);

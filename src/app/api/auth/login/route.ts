@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/client";
 import { ApiError } from "@/server/api/errors";
 import { json, parseBody, route } from "@/server/api/handler";
+import { LOGIN_LIMIT } from "@/server/api/rate-limit";
 import { burnPasswordTiming, verifyPassword } from "@/server/auth/password";
 import { createSessionToken, setSessionCookie } from "@/server/auth/session";
 import { loginSchema } from "@/lib/schemas/auth";
@@ -44,7 +45,7 @@ export const POST = route(async (request) => {
   await setSessionCookie(token);
 
   return json({ user: { id: user.id, email: user.email }, token });
-});
+}, { rateLimit: { scope: "login", rule: LOGIN_LIMIT } });
 
 function invalidCredentials(): ApiError {
   return new ApiError({

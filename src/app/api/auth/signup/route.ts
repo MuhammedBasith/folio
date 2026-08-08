@@ -2,6 +2,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/server/db/client";
 import { ApiError } from "@/server/api/errors";
 import { json, parseBody, route } from "@/server/api/handler";
+import { SIGNUP_LIMIT } from "@/server/api/rate-limit";
 import { hashPassword } from "@/server/auth/password";
 import { createSessionToken, setSessionCookie } from "@/server/auth/session";
 import { signupSchema } from "@/lib/schemas/auth";
@@ -52,4 +53,4 @@ export const POST = route(async (request) => {
 
     throw error;
   }
-});
+}, { rateLimit: { scope: "signup", rule: SIGNUP_LIMIT } });
