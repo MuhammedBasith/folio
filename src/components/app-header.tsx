@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,7 +116,7 @@ export function AppHeader({ email }: { email: string }) {
                 disabled={signingOut}
                 className="text-body-sm"
               >
-                <LogOut aria-hidden className="size-3.5" />
+                <SignOutIcon />
                 {signingOut ? "Signing out" : "Sign out"}
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -124,5 +124,36 @@ export function AppHeader({ email }: { email: string }) {
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Sign out.
+ *
+ * Drawn rather than imported, because the icon set's version is a door with an
+ * arrow bursting out of it: three shapes, two weights and a lot of literal
+ * storytelling for a menu row that is already labelled "Sign out". This is an
+ * open bracket and an arrow leaving it, at the same 1.5 stroke as everything
+ * else, with the arrowhead as a single mitred corner rather than two strokes.
+ *
+ * The bracket is deliberately open on the right so the arrow reads as passing
+ * through a gap rather than colliding with a wall.
+ */
+function SignOutIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-3.5"
+    >
+      <path d="M14.5 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h8" />
+      <path d="M17.5 8.5 21 12l-3.5 3.5" />
+      <path d="M21 12h-9" />
+    </svg>
   );
 }
