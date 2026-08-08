@@ -28,8 +28,8 @@ const buttonVariants = cva(
   cn(
     "pressable inline-flex shrink-0 items-center justify-center gap-2",
     "whitespace-nowrap rounded-md font-medium",
-    "transition-colors duration-[160ms] ease-out-quint",
-    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]",
+    "transition-colors duration-160 ease-out-quint",
+    "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
     "disabled:pointer-events-none disabled:opacity-50",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   ),
