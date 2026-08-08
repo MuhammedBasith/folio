@@ -4,7 +4,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 // From `lib/theme`, NOT from the provider. Importing a constant out of a
 // "use client" module gives a Server Component `undefined`, which is exactly
 // how the script below once shipped as `localStorage.getItem(undefined)`.
-import { THEME_STORAGE_KEY } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 /**
@@ -57,20 +57,28 @@ export const viewport: Viewport = {
  * Blocking and inline is correct: it is a couple of hundred bytes and it has to
  * finish before anything is painted.
  *
+ * DARK IS THE DEFAULT, and that is a product decision rather than a technical
+ * one. Folio is a room you sit in to work through what you are owed, and the
+ * gradient plates and the grain both read better on charcoal; the light theme
+ * is fully built and one click away. Note the consequence, because it is a real
+ * one: someone whose operating system is set to light will still land on dark
+ * the first time. Following the OS instead is a single word here (`d` becomes
+ * `matchMedia(...).matches` when nothing is stored).
+ *
  * `colorScheme` is set alongside so native scrollbars, form controls and
  * autofill chrome follow the palette instead of staying stubbornly light.
  */
 const THEME_SCRIPT = `(function(){try{var s=localStorage.getItem(${JSON.stringify(
   THEME_STORAGE_KEY,
-)});var d=s?s==="dark":matchMedia("(prefers-color-scheme: dark)").matches;var e=document.documentElement;e.dataset.theme=d?"dark":"light";e.style.colorScheme=d?"dark":"light"}catch(e){}})()`;
+)});var d=s?s==="dark":${JSON.stringify(DEFAULT_THEME === "dark")};var e=document.documentElement;e.dataset.theme=d?"dark":"light";e.style.colorScheme=d?"dark":"light"}catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      data-theme="light"
+      data-theme={DEFAULT_THEME}
       // The script above rewrites `data-theme` before React sees the document,
-      // so the server's "light" and the client's actual value legitimately
+      // so the server's default and the client's stored value legitimately
       // differ. This is the one place suppressing that warning is correct.
       suppressHydrationWarning
       className={`${inter.variable} ${instrumentSerif.variable} h-full antialiased`}

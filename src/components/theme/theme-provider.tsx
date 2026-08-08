@@ -10,6 +10,7 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import {
+  DEFAULT_THEME,
   THEME_STORAGE_KEY,
   THEME_TRANSITION_MS,
   type Theme,
@@ -73,11 +74,12 @@ function getSnapshot(): Theme {
 
 /**
  * The server genuinely cannot know: the preference lives in `localStorage`.
- * "light" matches the attribute the server renders on <html>, so hydration
- * agrees, and the pre-paint script has already painted the real one.
+ * This has to match the attribute the server renders on <html>, or hydration
+ * disagrees on the very first frame. The pre-paint script has already applied
+ * the real value by then.
  */
 function getServerSnapshot(): Theme {
-  return "light";
+  return DEFAULT_THEME;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

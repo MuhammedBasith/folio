@@ -25,3 +25,14 @@ export const THEME_STORAGE_KEY = "folio-theme";
 
 /** How long the reveal takes. Shared so the CSS and the JS animation agree. */
 export const THEME_TRANSITION_MS = 520;
+
+/**
+ * What a visitor gets before they have chosen anything.
+ *
+ * Dark, deliberately. It has to agree in three places at once, which is why it
+ * is a constant rather than a literal: the attribute the server renders on
+ * <html>, the fallback in the pre-paint script, and the server snapshot
+ * `useSyncExternalStore` hydrates against. Any two of those disagreeing is a
+ * flash on first paint.
+ */
+export const DEFAULT_THEME: Theme = "dark";
