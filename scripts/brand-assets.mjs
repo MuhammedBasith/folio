@@ -32,6 +32,30 @@ const OUT_GRADIENTS = path.join(PUBLIC, "gradients");
 const PAPER = "#f3f2f0";
 const INK = "#1c1a17";
 
+/**
+ * The dark theme, for the social card only.
+ *
+ * These are transcribed from `src/styles/tokens.css` rather than approximated,
+ * because the whole argument for generating the card here is that it is the
+ * same design system rather than a picture of it. If a token moves, this is the
+ * short list to move with it.
+ */
+const DARK = {
+  canvas: "oklch(0.178 0.004 68)",
+  ink: "oklch(0.982 0.003 75)",
+  inkMuted: "oklch(0.735 0.006 75)",
+  inkFaint: "oklch(0.6 0.006 75)",
+};
+
+/** `--noise-tile`, verbatim. */
+const NOISE =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>\")";
+
+/** Shown on the card, so it is worth it being the domain that actually serves it. */
+const DOMAIN = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://folio.basith.me")
+  .replace(/^https?:\/\//, "")
+  .replace(/\/$/, "");
+
 const MARK_PATHS = [
   "M0 0 H30 V25 A5 5 0 0 1 25 30 H0 Z",
   "M70 0 H100 V30 H82 A17 17 0 0 0 65 47 V65 H47 A17 17 0 0 0 30 82 V100 H0 V70 H18 A17 17 0 0 0 35 53 V35 H53 A17 17 0 0 0 70 18 Z",
@@ -118,11 +142,41 @@ function packIco(images) {
 }
 
 /**
- * The social card. Type is the design here, so it is laid out in HTML rather
- * than assembled from images: the same Instrument Serif and Inter the site
- * uses, drawn by the same engine.
+ * The mask the gradient plates are drawn through, copied from `falloff()` in
+ * `src/components/landing/gradient-plate.tsx`.
+ *
+ * `farthest-side` is the load-bearing keyword and the reason it is not simply
+ * `radial-gradient(ellipse at ...)`. Without a size keyword the default is
+ * `farthest-corner`, which scales the ellipse to reach the CORNER of the box:
+ * the radii grow by about 1.41x, a stop at 70% lands within a percent of the
+ * edge, and the plate draws its own rectangle instead of fading out.
  */
-function socialCard({ mark }) {
+function falloff(position) {
+  return `radial-gradient(ellipse farthest-side at ${position}, black 0%, black 20%, transparent 70%)`;
+}
+
+/**
+ * The social card.
+ *
+ * IT IS THE LANDING PAGE, CROPPED TO 1200x630, and every choice below follows
+ * from that. It is dark because the site's default theme is dark and a link
+ * preview is the first frame of the page; it is lit by the same two gradient
+ * photographs rather than by a CSS gradient, for the reason spelled out at
+ * length in `gradient-plate.tsx` (a mathematically smooth gradient is what the
+ * eye reads as synthetic, and it bands); it carries the same film grain at the
+ * same opacity; and the type is the real Instrument Serif and Inter drawn by
+ * the same engine that will draw them in the browser.
+ *
+ * TYPE FIRST, AND NO SCREENSHOT OF THE PRODUCT. The card is most often seen at
+ * a few hundred pixels wide in a feed, where a miniature of the orders table is
+ * an unreadable grey texture. One sentence at 84px survives that crop; the
+ * light is what makes it look like something rather than a quote card.
+ *
+ * The plates are inlined as data URIs. Chromium is rendering from `setContent`
+ * with no document URL, so a relative `src` has no base to resolve against and
+ * a `file://` one is blocked as a cross-origin read.
+ */
+function socialCard({ mark, signal, mist }) {
   return `<!doctype html>
 <html><head><meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -131,27 +185,100 @@ function socialCard({ mark }) {
 <style>
   * { margin: 0; box-sizing: border-box; }
   body {
-    width: 1200px; height: 630px; background: ${PAPER}; color: ${INK};
-    font-family: Inter, sans-serif; padding: 76px 84px;
+    width: 1200px; height: 630px; overflow: hidden; position: relative;
+    background: ${DARK.canvas}; color: ${DARK.ink};
+    font-family: Inter, sans-serif;
+  }
+
+  /* ---- Light ---------------------------------------------------------- */
+  .plate { position: absolute; background-repeat: no-repeat; background-size: cover; }
+
+  /**
+   * ONE LIGHT, AND ITS CORE IS OFF THE CANVAS.
+   *
+   * The plate is sized and placed so the bright centre of the mask lands just
+   * past the bottom right corner, which means the card shows the falloff and
+   * never the core. That is the difference between light entering the frame and
+   * a coloured disc sitting inside it: with the core visible, the mask's own
+   * round edge reads as a shape somebody placed, and the eye goes to it instead
+   * of to the sentence.
+   *
+   * It also puts the warmest part of the card diagonally opposite the lockup,
+   * so the two corners that carry anything are the two the eye already travels
+   * between, and the headline keeps a clean dark ground behind every line.
+   */
+  .signal {
+    left: 42%; top: 20%; width: 1320px; height: 1000px;
+    background-image: url("${signal}");
+    filter: blur(64px); opacity: 0.62;
+    mask-image: ${falloff("50% 50%")}; -webkit-mask-image: ${falloff("50% 50%")};
+  }
+
+  /**
+   * A cool counterweight low on the left, at an opacity that is felt and not
+   * seen. It sits BELOW the headline for the reason the hero gives: the sage in
+   * this plate goes grey when it is dimmed this far, and a grey haze behind
+   * type reads as a smudge on the lens rather than as a second light.
+   */
+  .mist {
+    left: -22%; top: 46%; width: 760px; height: 640px;
+    background-image: url("${mist}");
+    filter: blur(64px); opacity: 0.16;
+    mask-image: ${falloff("50% 50%")}; -webkit-mask-image: ${falloff("50% 50%")};
+  }
+
+  .grain {
+    position: absolute; inset: 0; background-image: ${NOISE};
+    background-size: 220px 220px; opacity: 0.035; mix-blend-mode: screen;
+  }
+
+  /* ---- Type ----------------------------------------------------------- */
+  .content {
+    position: relative; height: 100%; padding: 72px 84px;
     display: flex; flex-direction: column; justify-content: space-between;
   }
-  .mark { width: 44px; height: 44px; }
+  .lockup { display: flex; align-items: center; gap: 13px; }
+  .lockup svg { width: 27px; height: 27px; display: block; }
+  .lockup span {
+    font-family: "Instrument Serif", serif; font-size: 33px;
+    line-height: 1; letter-spacing: -0.028em;
+  }
   h1 {
     font-family: "Instrument Serif", serif; font-weight: 400;
-    font-size: 86px; line-height: 1.02; letter-spacing: -0.034em;
-    max-width: 15ch;
+    font-size: 84px; line-height: 1.04; letter-spacing: -0.032em;
+    max-width: 14ch;
   }
-  p { font-size: 23px; line-height: 1.5; letter-spacing: -0.011em; color: #57544e; max-width: 46ch; margin-top: 22px; }
-  .foot { display: flex; align-items: baseline; gap: 14px; font-size: 18px; color: #827e76; }
-  .name { font-family: "Instrument Serif", serif; font-size: 26px; color: ${INK}; }
+  p {
+    font-size: 23px; line-height: 1.5; letter-spacing: -0.011em;
+    color: ${DARK.inkMuted}; max-width: 44ch; margin-top: 24px;
+  }
+  /*
+     The secondary grey, not the tertiary one a caption takes on the page. The
+     right hand item sits directly on the brightest part of the glow, and the
+     tertiary step loses most of its contrast against a lifted ground; one step
+     up survives it and is still quiet over the dark left half.
+
+     No backticks in here, and that is not a style preference: this whole block
+     is inside a template literal, so one would end the string.
+  */
+  .foot {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 19px; letter-spacing: -0.008em; color: ${DARK.inkMuted};
+  }
 </style></head>
 <body>
-  <div class="mark">${mark}</div>
-  <div>
-    <h1>Know exactly who owes you what.</h1>
-    <p>Write down what a customer ordered, record each payment as it lands, and let the balance work itself out.</p>
+  <div class="plate mist"></div>
+  <div class="plate signal"></div>
+  <div class="grain"></div>
+
+  <div class="content">
+    <div class="lockup">${mark}<span>Folio</span></div>
+    <div>
+      <h1>Know exactly who owes you what.</h1>
+      <p>Write down what a customer ordered, record each payment as it lands, and let the balance work itself out.</p>
+    </div>
+    <div class="foot"><span>Orders and settlements</span><span>${DOMAIN}</span></div>
   </div>
-  <div class="foot"><span class="name">Folio</span><span>Orders and settlements</span></div>
 </body></html>`;
 }
 
@@ -213,15 +340,34 @@ async function main() {
 
   // ---- Social card ------------------------------------------------------
   const inlineMark = markSvg({
-    size: 44,
+    size: 27,
     inset: 0,
     radius: 0,
     background: null,
-    foreground: INK,
+    // Paper on charcoal, because the card is drawn in the dark theme.
+    foreground: DARK.ink,
   });
 
+  /**
+   * FROM `assets/`, NOT from the `public/gradients` this script writes further
+   * down. Reading its own output would make the card depend on the order of two
+   * sections in the same file, so a fresh checkout would render the first card
+   * against whatever was or was not already on disk. The JPEGs are the source
+   * of truth for the WebPs anyway.
+   */
+  const plate = async (name) =>
+    `data:image/jpeg;base64,${(
+      await readFile(path.join(SOURCE_GRADIENTS, `${name}.jpg`))
+    ).toString("base64")}`;
+
   await page.setViewportSize({ width: 1200, height: 630 });
-  await page.setContent(socialCard({ mark: inlineMark }));
+  await page.setContent(
+    socialCard({
+      mark: inlineMark,
+      signal: await plate("signal"),
+      mist: await plate("mist"),
+    }),
+  );
   await page.evaluate(() => document.fonts.ready);
   const card = await page.screenshot();
   await writeFile(path.join(APP, "opengraph-image.png"), card);
