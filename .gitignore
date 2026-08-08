@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/test-results
+/playwright-report
 
 # next.js
 /.next/
@@ -19,19 +21,25 @@
 
 # production
 /build
+/dist
 
 # misc
 .DS_Store
 *.pem
+Thumbs.db
 
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+logs
+*.log
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +47,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# assignment briefs — private, not part of the submission
+/docs
+
+# agent tooling — local only
+/.agents
+/.claude
+skills-lock.json
+AGENTS.md
+CLAUDE.md
+
+# editors
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# os
+.cache
+.temp
+.tmp
+
+# prisma
+/prisma/*.db
+/prisma/*.db-journal
