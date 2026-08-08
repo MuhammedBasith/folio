@@ -231,7 +231,7 @@ export function OrderForm() {
       {/* ---- Lines ---- */}
       <div className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-label uppercase text-ink-faint">Line items</h2>
+          <h2 className="text-label text-ink-faint">Line items</h2>
           <span data-numeric className="text-caption text-ink-faint">
             {lines.length} {lines.length === 1 ? "line" : "lines"}
           </span>
@@ -247,16 +247,16 @@ export function OrderForm() {
             slightly broken without it being obvious why.
           */}
           <div className="hidden border-b border-line-subtle bg-surface-sunken/60 px-3 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:gap-3">
-            <span className="px-1.5 text-label uppercase text-ink-faint">
+            <span className="px-1.5 text-label text-ink-faint">
               Description
             </span>
-            <span className="px-1.5 text-label uppercase text-ink-faint">
+            <span className="px-1.5 text-label text-ink-faint">
               Qty
             </span>
-            <span className="px-1.5 text-label uppercase text-ink-faint">
+            <span className="px-1.5 text-label text-ink-faint">
               Unit price
             </span>
-            <span className="text-right text-label uppercase text-ink-faint">
+            <span className="text-right text-label text-ink-faint">
               Amount
             </span>
             <span className="sr-only">Remove</span>
@@ -363,7 +363,7 @@ export function OrderForm() {
             </button>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-label uppercase text-ink-faint">Total</span>
+              <span className="text-label text-ink-faint">Total</span>
               <span data-numeric className="text-metric text-ink">
                 {formatMoney(previewTotalCents)}
               </span>
@@ -475,11 +475,11 @@ function Field({
     <div className="space-y-1.5">
       <label
         htmlFor={name}
-        className="block text-label uppercase text-ink-faint"
+        className="block text-label text-ink-faint"
       >
         {label}
         {optional ? (
-          <span className="ml-1.5 normal-case tracking-normal text-ink-disabled">
+          <span className="ml-1.5 tracking-normal text-ink-disabled">
             optional
           </span>
         ) : null}

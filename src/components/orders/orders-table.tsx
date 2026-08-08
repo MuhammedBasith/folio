@@ -186,7 +186,7 @@ function Th({
     <th
       scope="col"
       className={cn(
-        "px-3 py-2 text-label font-medium uppercase text-ink-faint",
+        "px-3 py-2 text-label font-medium text-ink-faint",
         className,
       )}
     >

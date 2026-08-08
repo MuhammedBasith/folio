@@ -30,7 +30,7 @@ export default function GlobalError({
   return (
     <main className="flex min-h-dvh items-center justify-center px-5 py-16">
       <div className="max-w-prose text-center">
-        <p className="font-mono text-label uppercase text-ink-faint">Error</p>
+        <p className="font-mono text-label text-ink-faint">Error</p>
         <h1 className="mt-4 font-heading text-display-lg text-ink">
           Something went wrong
         </h1>

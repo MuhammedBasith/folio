@@ -71,7 +71,7 @@ export default async function OrderDetailPage({
       {/* ---- Header ---- */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="font-mono text-label uppercase text-ink-faint">
+          <p className="font-mono text-label text-ink-faint">
             {order.reference}
           </p>
           <h1 className="mt-1.5 font-heading text-display text-ink">
@@ -123,7 +123,7 @@ export default async function OrderDetailPage({
       {/* ---- Lines ---- */}
       <section className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-label uppercase text-ink-faint">Line items</h2>
+          <h2 className="text-label text-ink-faint">Line items</h2>
           {!order.editable ? (
             <p className="text-caption text-ink-faint">
               Locked: payments have been recorded
@@ -137,25 +137,25 @@ export default async function OrderDetailPage({
               <tr className="border-b border-line-subtle bg-surface-sunken">
                 <th
                   scope="col"
-                  className="px-3 py-2 text-left text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-left text-label font-medium text-ink-faint"
                 >
                   Description
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium text-ink-faint"
                 >
                   Qty
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium text-ink-faint"
                 >
                   Unit price
                 </th>
                 <th
                   scope="col"
-                  className="px-3 py-2 text-right text-label font-medium uppercase text-ink-faint"
+                  className="px-3 py-2 text-right text-label font-medium text-ink-faint"
                 >
                   Total
                 </th>
@@ -192,7 +192,7 @@ export default async function OrderDetailPage({
               <tr className="border-t border-line bg-surface-sunken">
                 <td
                   colSpan={3}
-                  className="px-3 py-2.5 text-right text-label uppercase text-ink-faint"
+                  className="px-3 py-2.5 text-right text-label text-ink-faint"
                 >
                   Order total
                 </td>
@@ -207,7 +207,7 @@ export default async function OrderDetailPage({
 
       {/* ---- Payments ---- */}
       <section className="mt-8">
-        <h2 className="text-label uppercase text-ink-faint">Payment history</h2>
+        <h2 className="text-label text-ink-faint">Payment history</h2>
 
         {order.payments.length === 0 ? (
           <div className="mt-2 rounded-lg border border-dashed border-line bg-surface-raised px-6 py-10 text-center">
@@ -273,7 +273,7 @@ function Figure({
 }) {
   return (
     <div className="bg-surface-raised px-4 py-3.5">
-      <p className="text-label uppercase text-ink-faint">{label}</p>
+      <p className="text-label text-ink-faint">{label}</p>
       <p
         className={cn(
           "mt-1.5 text-metric-lg",

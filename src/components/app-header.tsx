@@ -87,7 +87,7 @@ export function AppHeader({ email }: { email: string }) {
 
             <DropdownMenuContent align="end" className="w-56">
               <div className="px-2 py-1.5">
-                <p className="text-label uppercase text-ink-faint">
+                <p className="text-label text-ink-faint">
                   Signed in as
                 </p>
                 <p className="mt-1 truncate text-caption text-ink">{email}</p>

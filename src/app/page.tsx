@@ -49,7 +49,7 @@ export default async function LandingPage() {
         */}
         <section className="px-5 pt-16 pb-14 md:px-8 md:pt-24 md:pb-16">
           <div className="mx-auto max-w-2xl text-center">
-            <p className="font-mono text-label uppercase text-ink-faint">
+            <p className="font-mono text-label text-ink-faint">
               Orders and settlements
             </p>
 
@@ -84,7 +84,7 @@ export default async function LandingPage() {
         <section className="border-y border-line bg-surface-sunken/40">
           <div className="mx-auto w-full max-w-4xl px-5 py-12 md:px-8 md:py-14">
             <div className="flex items-baseline justify-between gap-4">
-              <p className="font-mono text-label uppercase text-ink-faint">
+              <p className="font-mono text-label text-ink-faint">
                 The list
               </p>
               <p className="text-caption text-ink-faint">
@@ -101,7 +101,7 @@ export default async function LandingPage() {
                   (heading, i) => (
                     <span
                       key={heading}
-                      className={`text-label uppercase text-ink-faint ${
+                      className={`text-label text-ink-faint ${
                         i === 3 ? "text-right" : ""
                       }`}
                     >
@@ -143,7 +143,7 @@ export default async function LandingPage() {
 
         {/* ---- How it works ---- */}
         <section className="mx-auto w-full max-w-content px-5 py-14 md:px-8 md:py-16">
-          <p className="font-mono text-label uppercase text-ink-faint">
+          <p className="font-mono text-label text-ink-faint">
             How it works
           </p>
 
@@ -166,7 +166,7 @@ export default async function LandingPage() {
         <section className="border-t border-line">
           <div className="mx-auto grid w-full max-w-content gap-8 px-5 py-14 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:items-start md:gap-14 md:px-8 md:py-16">
             <div>
-              <p className="font-mono text-label uppercase text-ink-faint">
+              <p className="font-mono text-label text-ink-faint">
                 The one hard part
               </p>
               <h2 className="mt-4 font-heading text-display-lg text-balance text-ink">
@@ -208,7 +208,7 @@ export default async function LandingPage() {
         <section className="border-t border-line bg-surface-sunken/40">
           <div className="mx-auto grid w-full max-w-content gap-8 px-5 py-14 md:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] md:items-start md:gap-14 md:px-8 md:py-16">
             <div>
-              <p className="font-mono text-label uppercase text-ink-faint">
+              <p className="font-mono text-label text-ink-faint">
                 To the cent
               </p>
               <h2 className="mt-4 font-heading text-display-lg text-balance text-ink">

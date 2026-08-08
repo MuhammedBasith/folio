@@ -23,7 +23,7 @@ function Section({
   return (
     <section className="border-t border-line-subtle py-14 first:border-t-0 first:pt-0">
       <div className="mb-8 max-w-prose">
-        <p className="text-label uppercase text-ink-faint">{eyebrow}</p>
+        <p className="text-label text-ink-faint">{eyebrow}</p>
         <h2 className="mt-2 font-heading text-display-sm text-ink">{title}</h2>
         {note ? <p className="mt-3 text-body-sm text-ink-muted">{note}</p> : null}
       </div>
@@ -80,7 +80,7 @@ export default function TokensPage() {
   return (
     <main className="mx-auto w-full max-w-content px-6 py-16 md:px-10 md:py-24">
       <header className="mb-16 max-w-prose">
-        <p className="text-label uppercase text-ink-faint">Reference</p>
+        <p className="text-label text-ink-faint">Reference</p>
         <h1 className="mt-3 font-heading text-display-lg text-ink">
           Design tokens
         </h1>
@@ -145,7 +145,7 @@ export default function TokensPage() {
           </div>
           <div className="border-b border-line-subtle pb-6">
             <p className="mb-3 text-caption text-ink-faint">text-label</p>
-            <p className="text-label uppercase text-ink-faint">Amount due</p>
+            <p className="text-label text-ink-faint">Amount due</p>
           </div>
           <div>
             <p className="mb-3 text-caption text-ink-faint">

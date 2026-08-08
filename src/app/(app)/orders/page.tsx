@@ -169,7 +169,7 @@ function Metric({
 }) {
   return (
     <div className="bg-surface-raised px-4 py-3.5">
-      <p className="text-label uppercase text-ink-faint">{label}</p>
+      <p className="text-label text-ink-faint">{label}</p>
       <p
         className={cn(
           "mt-1.5 text-metric-lg",
