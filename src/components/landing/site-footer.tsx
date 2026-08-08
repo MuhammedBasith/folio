@@ -64,10 +64,22 @@ export function SiteFooter() {
         // Anchored to the BOTTOM and taller than the footer, so the light
         // rises out of the previous section and falls away past the wordmark
         // rather than starting and stopping inside a rectangle.
-        // Wider than it is tall, so it reads as a wash across the foot of the
-        // page rather than as one large oval sitting on it. A radial falloff on
-        // a squarer box always announces its own shape.
-        className="bottom-[-16%] left-1/2 h-[40rem] w-[min(92rem,175%)] -translate-x-1/2"
+        /**
+         * FLUSH WITH THE BOTTOM OF THE DOCUMENT, never past it.
+         *
+         * It used to hang 16% below the footer, and overflow in the block
+         * direction is scrollable: that produced 135px of empty glow underneath
+         * the wordmark, so the wordmark stopped being the last thing on the
+         * page. `bottom-0` makes the plate end exactly where the document does.
+         *
+         * It is then made tall enough to reach up past the closing statement,
+         * with the bright core pushed down to 58% so the light is strongest at
+         * the foot of the page and falls away upward. A centred core on a plate
+         * this tall would put the brightest part in the middle of the link
+         * columns, which is the one place it is in the way.
+         */
+        className="bottom-0 left-1/2 h-[72rem] w-[min(92rem,175%)] -translate-x-1/2"
+        origin="50% 58%"
         blur="blur-[64px]"
         opacity="opacity-48 dark:opacity-34"
       />
