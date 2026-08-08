@@ -45,6 +45,27 @@ money moves through this system.
 Accounts exist so that several unrelated businesses can share one deployment
 without ever seeing each other's data.
 
+Two things go beyond the brief, both because the brief stops one step short of
+what the screen is actually for:
+
+- **Debtor ageing.** "You are owed $7,368" is close to useless on its own. Money
+  four days late is an admin oversight; money four months late is a bad debt
+  forming. The dashboard buckets what is outstanding by how far past its due
+  date it is, on the conventional boundaries every bookkeeper already reads
+  (current, 1-30, 31-60, 61-90, 90+). It renders nothing when everything is
+  inside its terms, so it appears only on the days it has something to say.
+- **A drafted chase message.** Nobody opens a receivables ledger to admire the
+  total; they open it because somebody has not paid and they have to write the
+  awkward email. Folio drafts it from the reference, the balance, what has
+  already been paid and how late it is, and the tone escalates with the age on
+  the same thresholds as the ageing buckets. It is editable before it is copied,
+  and nothing is sent: there is no mail transport here, and adding one is a
+  different product with a different set of failure modes.
+
+Both are derived from data the product already has, need no schema change, and
+are pure functions in `src/lib/domain/`, which is why they are tested rather
+than eyeballed.
+
 ---
 
 ## Running it locally
@@ -404,7 +425,7 @@ order exists.
 ## Testing
 
 ```
-102  unit tests         pure logic, no I/O, ~200ms
+140  unit tests         pure logic, no I/O, ~200ms
 30   integration tests  real PostgreSQL, real transactions, real locks
 52   smoke checks       end-to-end over HTTP against a running server
 32   screenshots        every page, both themes, desktop and phone
@@ -449,6 +470,11 @@ working code to confirm the suite catches it:
 | Sort settled orders oldest first | 1 |
 | Put overdue last in the list sort | 2 |
 | Import the theme storage key from the client module | 2 (smoke) |
+| Move an ageing bucket boundary by one day | 1 |
+| Include settled orders in the ageing report | 2 |
+| Add one to `daysOverdue` | 14 |
+| Raise the threshold so the final chase tone is unreachable | 1 |
+| Chase for the order total instead of the balance | 2 |
 
 ### A critical bug found by adversarial review
 
@@ -558,6 +584,16 @@ A few decisions worth stating:
 - **Nothing is set in capitals.** Letter-spaced uppercase labels are a shortcut
   to looking designed and they cost real legibility: capitals have no ascenders
   or descenders, so the word loses the silhouette the eye actually reads.
+- **Two typefaces, and only two.** Instrument Serif for display, Inter for
+  everything else. A monospace face carried references and receipts for a while
+  and it was the wrong tool twice over: it is drawn for code, it reads as a
+  terminal in an interface, and it fights both of the other two. The one thing
+  it genuinely provided, figures of identical width, comes from Inter through
+  `tabular-nums`.
+- **`surface-inset` reverses direction between themes, deliberately.** A table
+  header is not recessed, it is the same plane as its panel with a mark on it,
+  so it steps darker on paper and lighter on charcoal. Reusing the recessed
+  token made every header in dark mode read as a hole punched in the card.
 - **Elevation is tint, not shadow.** Surfaces separate by getting fractionally
   darker and carrying a hairline border. Shadows are reserved for things that
   genuinely float (dialogs, popovers).
