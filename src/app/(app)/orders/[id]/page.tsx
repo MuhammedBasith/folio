@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { ApiError } from "@/server/api/errors";
 import { Money } from "@/components/money";
 import { StatusBadge } from "@/components/status-badge";
 import { RecordPaymentDialog } from "@/components/orders/record-payment-dialog";
@@ -40,9 +42,21 @@ export default async function OrderDetailPage({
   const session = await requireUser();
   const { id } = await params;
 
-  // A missing or someone else's order throws a 404-shaped ApiError, which Next
-  // renders as the not-found page.
-  const order = await getOrder(session.userId, id);
+  /**
+   * The repository throws an `ApiError` with a 404 status, which is the right
+   * shape for the REST API but means nothing to Next. It has to be translated
+   * into `notFound()` explicitly, otherwise a mistyped id renders the generic
+   * error boundary instead of the 404 page.
+   *
+   * Only 404s are translated. Anything else is a genuine fault and should reach
+   * the error boundary rather than being disguised as a missing page.
+   */
+  const order = await getOrder(session.userId, id).catch((error: unknown) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
+    throw error;
+  });
 
   return (
     <main className="mx-auto w-full max-w-detail px-5 py-10 md:px-8 md:py-14">
