@@ -16,6 +16,20 @@
     font-family: var(--font-sans);
     /* Stops iOS Safari inflating text in landscape. */
     -webkit-text-size-adjust: 100%;
+
+    /**
+     * Reserve the scrollbar track whether or not there is anything to scroll.
+     *
+     * This is the fix for the jump when a dialog or a dropdown opens. Radix
+     * locks the body to stop the page scrolling underneath, the scrollbar
+     * vanishes, the viewport gets ~15px wider, and every centred element on the
+     * page slides sideways. It reads as the interface flinching.
+     *
+     * Compensating with padding on <body> is the usual workaround and it fails
+     * for anything `position: fixed`, which includes the header. Reserving the
+     * gutter means the width never changes in the first place.
+     */
+    scrollbar-gutter: stable;
   }
 
   body {
