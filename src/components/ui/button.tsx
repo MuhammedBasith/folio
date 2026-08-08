@@ -39,7 +39,7 @@ const buttonVariants = cva(
     "whitespace-nowrap rounded-md font-medium",
     "transition-[background-color,border-color,color,box-shadow] duration-160 ease-out-quint",
     "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)",
-    "disabled:pointer-events-none disabled:opacity-45 disabled:shadow-none",
+    "disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none disabled:inset-shadow-none",
     "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   ),
   {
