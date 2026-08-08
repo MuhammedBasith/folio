@@ -85,7 +85,7 @@ export function SiteHeader() {
       >
         <Link
           href="/"
-          className="group inline-flex shrink-0 items-center text-ink"
+          className="group inline-flex min-h-8 shrink-0 items-center text-ink"
           aria-label="Folio home"
         >
           <Mark className="size-5 shrink-0 transition-transform duration-280 ease-spring group-hover:rotate-90" />

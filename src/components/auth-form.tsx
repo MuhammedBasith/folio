@@ -137,7 +137,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         */}
         <Link
           href="/"
-          className="inline-flex w-full max-w-md items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
+          className="inline-flex min-h-8 w-full max-w-md items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
         >
           <Mark className="size-4" />
           <span className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em]">

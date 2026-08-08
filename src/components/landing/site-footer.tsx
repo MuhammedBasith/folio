@@ -87,7 +87,7 @@ export function SiteFooter() {
             <div>
               <Link
                 href="/"
-                className="inline-flex items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
+                className="inline-flex min-h-8 items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
               >
                 <Mark className="size-4" />
                 <span className="font-heading text-[1.25rem] leading-none tracking-[-0.026em]">
@@ -200,8 +200,11 @@ function FooterLink({
   href: string;
   children: React.ReactNode;
 }) {
+  // `inline-block` plus vertical padding, so each link is a 24px target rather
+  // than a 16px line of text. These sit alone in a list, so there is no
+  // sentence for the extra height to disturb.
   const className =
-    "text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink";
+    "inline-block py-1 text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink";
 
   if (href.startsWith("#")) {
     return (

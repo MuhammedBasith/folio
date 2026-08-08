@@ -62,7 +62,7 @@ export function AppHeader({ email }: { email: string }) {
       <div className="mx-auto flex h-14 w-full max-w-content items-center gap-4 px-5 md:px-8">
         <Link
           href="/orders"
-          className="group inline-flex items-center gap-2.5 text-ink"
+          className="group inline-flex min-h-8 items-center gap-2.5 text-ink"
           aria-label="Folio home"
         >
           <Mark className="size-4 transition-transform duration-280 ease-spring group-hover:rotate-90" />

@@ -80,7 +80,7 @@ export default function TokensPage() {
         <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-6 md:px-10">
           <Link
             href="/"
-            className="inline-flex items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
+            className="inline-flex min-h-8 items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
           >
             <Mark className="size-4" />
             <span className="font-heading text-[1.125rem] leading-none tracking-[-0.022em]">
