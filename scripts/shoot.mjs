@@ -68,10 +68,24 @@ async function main() {
       });
 
       const page = await context.newPage();
+
+      // Which page is being shot right now, so a console error can be
+      // attributed rather than reported as coming from "somewhere".
+      let current = { name: "startup", expect: 200 };
+
       page.on("console", (message) => {
-        if (message.type() === "error") {
-          problems.push(`[${theme}/${viewport.name}] ${message.text()}`);
-        }
+        if (message.type() !== "error") return;
+
+        // Chromium logs a console error for any non-2xx document, so the 404
+        // route reports one every single time. That is the page working.
+        const expected404 =
+          current.expect === 404 && /status of 404/.test(message.text());
+
+        if (expected404) return;
+
+        problems.push(
+          `[${theme}/${viewport.name}] ${current.name}: ${message.text()}`,
+        );
       });
 
       // The pre-paint script reads localStorage, so the preference has to be
@@ -91,12 +105,14 @@ async function main() {
           signedIn = true;
         }
 
+        const expected = target.name === "not-found" ? 404 : 200;
+        current = { name: target.name, expect: expected };
+
         const response = await page.goto(`${BASE}${target.path}`, {
           waitUntil: "networkidle",
         });
 
         const status = response?.status() ?? 0;
-        const expected = target.name === "not-found" ? 404 : 200;
         if (status !== expected) {
           problems.push(
             `[${theme}/${viewport.name}] ${target.path} -> ${status}, expected ${expected}`,
