@@ -39,6 +39,16 @@
   --surface-overlay: var(--n-0);
   --surface-inverse: var(--n-900);
 
+  /**
+   * The editorial ground, used by the landing page only.
+   *
+   * Warmer and a shade off white, because a marketing page is a printed page:
+   * paper is never pure white, and the gradient plates it carries need
+   * somewhere warm to sit or their edges read as a hard cut. The product itself
+   * stays on true white, where contrast against figures matters more than mood.
+   */
+  --surface-canvas: oklch(0.99 0.008 76);
+
   /* Editorial washes: tinted section grounds for the landing page. */
   --wash-ember: var(--ember-50);
   --wash-ember-line: var(--ember-100);
@@ -196,6 +206,8 @@
   --surface-sunken: oklch(0.142 0.003 75);
   --surface-overlay: oklch(0.218 0.004 75);
   --surface-inverse: var(--n-50);
+  /* A hair lifted rather than warmer: warmth at this luminance goes muddy. */
+  --surface-canvas: oklch(0.178 0.004 68);
 
   --wash-ember: oklch(0.235 0.032 34);
   --wash-ember-line: oklch(0.315 0.055 32);
