@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Instrument_Serif, Geist_Mono } from "next/font/google";
-import {
-  ThemeProvider,
-  THEME_STORAGE_KEY,
-} from "@/components/theme/theme-provider";
+import { ThemeProvider } from "@/components/theme/theme-provider";
+// From `lib/theme`, NOT from the provider. Importing a constant out of a
+// "use client" module gives a Server Component `undefined`, which is exactly
+// how the script below once shipped as `localStorage.getItem(undefined)`.
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 /**

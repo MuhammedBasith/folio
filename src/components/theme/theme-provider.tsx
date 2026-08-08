@@ -4,15 +4,18 @@ import {
   createContext,
   useCallback,
   useContext,
+  useLayoutEffect,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { flushSync } from "react-dom";
+import {
+  THEME_STORAGE_KEY,
+  THEME_TRANSITION_MS,
+  type Theme,
+} from "@/lib/theme";
 
-export type Theme = "light" | "dark";
-
-export const THEME_STORAGE_KEY = "folio-theme";
-const VT_DURATION_MS = 520;
+export type { Theme };
 
 interface OriginPoint {
   x: number;
@@ -80,6 +83,38 @@ function getServerSnapshot(): Theme {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
+  /**
+   * Re-apply the stored preference if the attribute has gone missing.
+   *
+   * In development, Strict Mode remounts once, and on that remount React resets
+   * <html> to only the attributes it manages from JSX, wiping the one the
+   * pre-paint script set. The page then renders light for someone who chose
+   * dark. This is documented Next behaviour and the documented fix.
+   *
+   * A layout effect rather than an effect, so the correction lands before
+   * paint. It writes to the DOM and announces the change rather than calling
+   * `setState`, which keeps the attribute as the single source of truth: the
+   * store is the DOM, so telling the store is how you tell React.
+   *
+   * In production this reads one value, finds it already correct, and does
+   * nothing.
+   */
+  useLayoutEffect(() => {
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem(THEME_STORAGE_KEY);
+    } catch {
+      return;
+    }
+
+    if (stored !== "dark" && stored !== "light") return;
+    if (document.documentElement.dataset.theme === stored) return;
+
+    document.documentElement.dataset.theme = stored;
+    document.documentElement.style.colorScheme = stored;
+    window.dispatchEvent(new Event(CHANGE_EVENT));
+  }, []);
+
   const setTheme = useCallback((next: Theme, origin?: OriginPoint) => {
     const commit = () => {
       document.documentElement.dataset.theme = next;
@@ -117,7 +152,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
     const root = document.documentElement;
     root.dataset.themeVt = "";
-    root.style.setProperty("--theme-vt-duration", `${VT_DURATION_MS}ms`);
+    root.style.setProperty("--theme-vt-duration", `${THEME_TRANSITION_MS}ms`);
 
     const cleanup = () => {
       delete root.dataset.themeVt;
@@ -145,7 +180,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             ],
           },
           {
-            duration: VT_DURATION_MS,
+            duration: THEME_TRANSITION_MS,
             easing: "cubic-bezier(0.32, 0.72, 0.24, 1)",
             fill: "forwards",
             pseudoElement: "::view-transition-new(root)",
