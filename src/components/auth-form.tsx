@@ -257,11 +257,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             sizes="50vw"
             className="object-cover"
           />
-          {/* Legibility scrim, bottom-up only, so the top of the plate stays
-              clean and the type still has ground underneath it. */}
+          {/*
+            Legibility scrim, bottom-up only, so the top of the plate stays
+            clean and the type still has ground underneath it.
+
+            Weighted for the WORST case rather than the average one. The lower
+            half of this particular plate is pale grey, and at the opacity this
+            started on the cream type sat on light grey and was genuinely hard
+            to read. A scrim has to be built against the lightest pixel it might
+            ever cover, not the one it happens to cover today.
+          */}
           <div
             aria-hidden
-            className="absolute inset-0 bg-linear-to-t from-[oklch(0.16_0.01_40/0.72)] via-[oklch(0.16_0.01_40/0.18)] to-transparent"
+            className="absolute inset-0 bg-linear-to-t from-[oklch(0.14_0.012_40/0.88)] from-15% via-[oklch(0.14_0.012_40/0.42)] via-45% to-transparent"
           />
           <div className="absolute inset-x-0 bottom-0 p-9">
             <p className="max-w-[22ch] font-heading text-display-lg text-[oklch(0.985_0.004_75)]">
