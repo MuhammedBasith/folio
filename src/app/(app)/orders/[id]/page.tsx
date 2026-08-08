@@ -78,7 +78,7 @@ export default async function OrderDetailPage({
           name, where it sits with the due date it depends on. */}
       <div className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="font-mono text-caption text-ink-faint">
+          <p className="text-caption text-ink-faint tabular-nums">
             {order.reference}
           </p>
           <h1 className="mt-1 font-heading text-display text-ink">

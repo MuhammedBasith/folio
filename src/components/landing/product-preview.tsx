@@ -111,7 +111,7 @@ export function ProductPreview() {
                 key={row.reference}
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-line-subtle px-4 py-3 text-body-sm last:border-b-0 md:grid-cols-[6rem_minmax(0,1fr)_7.5rem_7rem_7rem_5rem] md:py-2.5"
               >
-                <span className="hidden font-mono text-caption text-ink-faint md:block">
+                <span className="hidden text-caption text-ink-faint tabular-nums md:block">
                   {row.reference}
                 </span>
                 <span className="truncate font-medium text-ink">

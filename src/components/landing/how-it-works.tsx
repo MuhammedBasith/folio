@@ -41,7 +41,7 @@ export function HowItWorks() {
       className="mx-auto w-full max-w-content scroll-mt-24 px-5 py-20 md:px-8 md:py-24"
     >
       <Reveal>
-        <p className="font-mono text-caption text-ink-faint">How it works</p>
+        <p className="text-caption text-ink-faint">How it works</p>
         <h2 className="mt-3 max-w-[20ch] font-heading text-display-lg text-balance text-ink">
           Three steps, and the third one happens on its own.
         </h2>
@@ -56,7 +56,7 @@ export function HowItWorks() {
                 step.wash,
               )}
             >
-              <span className="font-mono text-caption text-ink-faint">
+              <span className="text-caption text-ink-faint">
                 {String(index + 1).padStart(2, "0")}
               </span>
               <h3 className="mt-3 font-heading text-display-sm text-ink">

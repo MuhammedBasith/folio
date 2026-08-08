@@ -139,7 +139,7 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
                   "transition-colors duration-120 hover:bg-surface-sunken/55",
                 )}
               >
-                <Td className="font-mono text-caption text-ink-faint">
+                <Td className="text-caption text-ink-faint tabular-nums">
                   {/*
                     A stretched anchor, not an onClick on the row, so it stays a
                     real link: keyboard focusable, middle-clickable, copyable.

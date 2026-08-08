@@ -210,7 +210,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                     <span className="block text-body-sm font-medium text-ink">
                       Look around with the demo account
                     </span>
-                    <span className="mt-0.5 block truncate font-mono text-caption text-ink-faint">
+                    <span className="mt-0.5 block truncate text-caption text-ink-faint">
                       {DEMO.email}
                     </span>
                   </span>

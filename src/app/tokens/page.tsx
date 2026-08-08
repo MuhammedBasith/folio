@@ -41,7 +41,7 @@ function Section({
   return (
     <section className="border-t border-line-subtle py-14 first:border-t-0 first:pt-0">
       <div className="mb-8 max-w-prose">
-        <p className="font-mono text-caption text-ink-faint">{eyebrow}</p>
+        <p className="text-caption text-ink-faint">{eyebrow}</p>
         <h2 className="mt-2 font-heading text-display-sm text-ink">{title}</h2>
         {note ? <p className="mt-3 text-body-sm text-ink-muted">{note}</p> : null}
       </div>
@@ -93,7 +93,7 @@ export default function TokensPage() {
 
       <main className="mx-auto w-full max-w-content px-6 py-16 md:px-10 md:py-20">
         <div className="mb-16 max-w-prose">
-          <p className="font-mono text-caption text-ink-faint">Reference</p>
+          <p className="text-caption text-ink-faint">Reference</p>
           <h1 className="mt-3 font-heading text-display-lg text-ink">
             Design tokens
           </h1>
@@ -428,7 +428,7 @@ function Specimen({
 }) {
   return (
     <div className="border-b border-line-subtle pb-6 last:border-b-0 last:pb-0">
-      <p className="mb-3 font-mono text-caption text-ink-faint">{label}</p>
+      <p className="mb-3 text-caption text-ink-faint">{label}</p>
       {children}
     </div>
   );
