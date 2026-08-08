@@ -1,6 +1,7 @@
 import { authedRoute, zodToApiError } from "@/server/api/handler";
+import { ApiError } from "@/server/api/errors";
 import { listOrders } from "@/server/repositories/orders";
-import { listOrdersQuerySchema } from "@/lib/schemas/order";
+import { exportRangeSchema, listOrdersQuerySchema } from "@/lib/schemas/order";
 import { formatCents } from "@/lib/money";
 
 /**
@@ -24,14 +25,43 @@ export const GET = authedRoute(async (request, { session }) => {
     throw zodToApiError(parsed.error);
   }
 
-  const from = url.searchParams.get("from");
-  const to = url.searchParams.get("to");
+  /**
+   * `from` and `to` are validated, not trusted.
+   *
+   * They were previously read raw and compared lexicographically against
+   * `dueDate`. A malformed value like `?from=08-2026` is a perfectly valid
+   * string that sorts above every real date, so the export returned an empty
+   * but entirely successful CSV. Someone reconciling their books would conclude
+   * they had no orders in that period rather than that they had mistyped.
+   *
+   * A bad range is now a 422 naming the offending parameter.
+   */
+  const range = exportRangeSchema.safeParse({
+    from: url.searchParams.get("from") ?? undefined,
+    to: url.searchParams.get("to") ?? undefined,
+  });
+
+  if (!range.success) {
+    throw zodToApiError(range.error);
+  }
+
+  const { from, to } = range.data;
+
+  if (from && to && from > to) {
+    throw new ApiError({
+      status: 422,
+      code: "VALIDATION_FAILED",
+      message: "The start of the range must not be after the end.",
+      fields: { from: "This date is after the end of the range." },
+    });
+  }
 
   const orders = await listOrders(session.userId, {
     status: parsed.data.status,
   });
 
-  // String comparison is correct for YYYY-MM-DD, which sorts lexicographically.
+  // String comparison is correct for YYYY-MM-DD, which sorts lexicographically,
+  // and both sides are now guaranteed to be in that format.
   const filtered = orders.filter((order) => {
     if (from && order.dueDate < from) return false;
     if (to && order.dueDate > to) return false;
