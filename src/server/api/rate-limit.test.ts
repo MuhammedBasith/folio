@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  LOGIN_LIMIT,
+  RULES,
   clientKey,
+  forRuntime,
   hit,
   resetRateLimits,
   type RateLimitRule,
@@ -76,11 +77,46 @@ describe("hit", () => {
     expect(hit("login:1.2.3.4", RULE, T0).ok).toBe(false);
   });
 
-  it("ships a login rule tight enough to matter", () => {
+});
+
+describe("the rules that ship", () => {
+  it("keeps login tight enough to matter", () => {
     // Ten guesses per quarter hour. The exact numbers can move; an unbounded
     // or hourly-scale login limit cannot.
-    expect(LOGIN_LIMIT.limit).toBeLessThanOrEqual(10);
-    expect(LOGIN_LIMIT.windowMs).toBeGreaterThanOrEqual(5 * 60_000);
+    expect(RULES.login.limit).toBeLessThanOrEqual(10);
+    expect(RULES.login.windowMs).toBeGreaterThanOrEqual(5 * 60_000);
+  });
+
+  it("keeps signup lower than login", () => {
+    // Creating accounts is rarer than mistyping a password, so it should never
+    // be the more permissive of the two.
+    expect(RULES.signup.limit).toBeLessThan(RULES.login.limit);
+  });
+
+  it("leaves authenticated writes generous", () => {
+    // High enough that no human working normally reaches it.
+    expect(RULES.write.limit).toBeGreaterThanOrEqual(60);
+  });
+
+  /**
+   * THE INVARIANT. Development shortens the window so a suite can run twice in
+   * a row; it must never relax the count, or every local run would be testing
+   * behaviour that does not ship.
+   */
+  it("shortens the window outside production and never the count", () => {
+    for (const rule of Object.values(RULES)) {
+      const dev = forRuntime(rule, false);
+      const prod = forRuntime(rule, true);
+
+      expect(dev.limit).toBe(rule.limit);
+      expect(prod).toEqual(rule);
+      expect(dev.windowMs).toBeLessThanOrEqual(rule.windowMs);
+    }
+  });
+
+  it("leaves an already-short window alone", () => {
+    const short: RateLimitRule = { limit: 3, windowMs: 1_000 };
+    expect(forRuntime(short, false)).toEqual(short);
   });
 });
 

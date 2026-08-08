@@ -62,6 +62,27 @@ export interface RateLimitRule {
 }
 
 /**
+ * THE RULES, as they are in production.
+ *
+ * Exported separately from what actually runs, because what actually runs has
+ * its window shortened outside production and a test asserting "the login
+ * window is at least five minutes" would then be asserting the development
+ * value. These are the numbers that matter; the ones below are those numbers
+ * adapted to the environment.
+ */
+export const RULES = {
+  /** Password guessing. Tight: the attacker only needs to be lucky once. */
+  login: { limit: 10, windowMs: 15 * 60_000 },
+  /** Account creation. Low, because a human does this approximately once. */
+  signup: { limit: 5, windowMs: 60 * 60_000 },
+  /**
+   * Authenticated writes. Generous: this exists to stop a runaway script, not
+   * to police anyone's usage of their own ledger.
+   */
+  write: { limit: 120, windowMs: 60_000 },
+} as const satisfies Record<string, RateLimitRule>;
+
+/**
  * Outside production the WINDOW shortens; the COUNT never changes.
  *
  * The alternative, disabling the limiter in development, means the one code
@@ -72,32 +93,20 @@ export interface RateLimitRule {
  * running that suite twice in a row does not lock the developer out of their
  * own machine for a quarter of an hour.
  */
-const productionWindow = process.env.NODE_ENV === "production";
+const DEV_WINDOW_MS = 5_000;
 
-function windowMs(ms: number): number {
-  return productionWindow ? ms : Math.min(ms, 5_000);
+export function forRuntime(
+  rule: RateLimitRule,
+  isProduction = process.env.NODE_ENV === "production",
+): RateLimitRule {
+  return isProduction
+    ? rule
+    : { limit: rule.limit, windowMs: Math.min(rule.windowMs, DEV_WINDOW_MS) };
 }
 
-/** Password guessing. Tight, because the attacker only needs to be lucky once. */
-export const LOGIN_LIMIT: RateLimitRule = {
-  limit: 10,
-  windowMs: windowMs(15 * 60_000),
-};
-
-/** Account creation. Low, because a human does this approximately once. */
-export const SIGNUP_LIMIT: RateLimitRule = {
-  limit: 5,
-  windowMs: windowMs(60 * 60_000),
-};
-
-/**
- * Authenticated writes. Generous: this exists to stop a runaway script, not to
- * police anyone's usage of their own ledger.
- */
-export const WRITE_LIMIT: RateLimitRule = {
-  limit: 120,
-  windowMs: windowMs(60_000),
-};
+export const LOGIN_LIMIT: RateLimitRule = forRuntime(RULES.login);
+export const SIGNUP_LIMIT: RateLimitRule = forRuntime(RULES.signup);
+export const WRITE_LIMIT: RateLimitRule = forRuntime(RULES.write);
 
 export interface RateLimitResult {
   ok: boolean;
