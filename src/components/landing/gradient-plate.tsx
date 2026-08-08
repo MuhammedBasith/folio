@@ -11,17 +11,43 @@ import { cn } from "@/lib/utils";
  * it also bands on an 8-bit display. A photograph has grain, drift and slightly
  * wrong edges, which is what makes the light look like light.
  *
- * Three properties do the work:
+ * THE MASK HAS TO FINISH WELL INSIDE THE BOX. This is the whole trick, and
+ * getting it wrong produces the two opposite failures I have now seen both of:
  *
- * - `mask` fades the plate to nothing at its edges, so it never shows a border
- *   and never looks like a rectangle someone pasted onto the page.
- * - `blur` pushes it out of focus so no one reads it as an image with a subject.
- * - opacity drops in dark mode, because the same plate that reads as a warm
- *   haze on paper reads as a light leak on charcoal.
+ *   - `mask-repeat: repeat` (the CSS default) tiles the gradient outside the
+ *     element, so the blur bleeding past the border box meets a fresh opaque
+ *     copy of the mask. That draws a seam exactly on the box boundary.
+ *   - `no-repeat` with the falloff running to 88% cuts the blur off at the box
+ *     edge instead, because the mask is still carrying visible light when it
+ *     ends. That draws a rectangle, which is worse: it reads as a panel rather
+ *     than as a glow.
+ *
+ * The fix is neither flag on its own. `no-repeat` stops the tiling, AND the
+ * falloff reaches zero at 70% of the radius, so the outer third of the box is
+ * already fully transparent before the mask runs out. There is nothing left for
+ * either boundary to cut, and the light simply fades into the page.
+ *
+ * NOTHING CLIPS THESE. The sections they sit in deliberately carry no
+ * `overflow-hidden`; the page wrapper uses `overflow-x: clip`, which stops
+ * sideways scrolling without creating a scroll container, so a plate is free to
+ * bleed down into whatever comes next. That is what makes the light belong to
+ * the page rather than to one section of it.
  *
  * `aria-hidden` and an empty alt throughout: this is atmosphere, and announcing
  * it to a screen reader would be noise.
  */
+
+/**
+ * Concentrated core, long tail, clear by 70%.
+ *
+ * The core is small on purpose. A mask that starts fading immediately spreads
+ * the light thinly over the whole plate and washes the section out; keeping it
+ * opaque through the middle fifth is what gives the glow somewhere to actually
+ * be bright.
+ */
+const FALLOFF =
+  "radial-gradient(ellipse at center, black 0%, black 20%, transparent 70%)";
+
 export function GradientPlate({
   src,
   className,
@@ -43,32 +69,10 @@ export function GradientPlate({
       <div
         className={cn("relative h-full w-full", blur, opacity)}
         style={{
-          /**
-           * `no-repeat` IS THE WHOLE FIX, and its absence was a real bug.
-           *
-           * `mask-repeat` defaults to `repeat`. `filter: blur()` spreads the
-           * plate well past its own border box, and everything outside that box
-           * was being masked by a TILED copy of this gradient rather than by
-           * nothing at all. The result was a straight edge exactly on the box
-           * boundary, in every direction: a hard horizontal line across the top
-           * of the footer and two vertical seams down the hero.
-           *
-           * With no-repeat, anywhere outside the mask image is simply
-           * transparent, so the blur fades into the page instead of running
-           * into the next tile.
-           *
-           * The falloff also starts sooner and ends later than it did. A mask
-           * that goes from opaque to clear over 40% of the radius still has a
-           * perceptible boundary on a large plate; over 75% it has none.
-           */
-          maskImage:
-            "radial-gradient(ellipse at center, black 12%, transparent 88%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse at center, black 12%, transparent 88%)",
+          maskImage: FALLOFF,
+          WebkitMaskImage: FALLOFF,
           maskRepeat: "no-repeat",
           WebkitMaskRepeat: "no-repeat",
-          maskSize: "100% 100%",
-          WebkitMaskSize: "100% 100%",
         }}
       >
         <Image
