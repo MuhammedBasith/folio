@@ -43,10 +43,22 @@
 }
 
 @theme inline {
-  /* Type families ------------------------------------------------------ */
+  /**
+   * Type families. TWO, AND ONLY TWO.
+   *
+   * A monospace face used to carry references and receipts here, and it was
+   * the wrong tool twice over. Monospace is drawn for code, where column
+   * alignment of arbitrary characters is the whole requirement; in an interface
+   * it reads as a terminal, its letterforms fight both Inter and Instrument
+   * Serif, and it drags a third font file down the wire for a handful of
+   * labels.
+   *
+   * The one thing it was genuinely providing, figures of identical width, is
+   * available from Inter through `tabular-nums`, which is what every place that
+   * needs a column to line up now uses.
+   */
   --font-sans: var(--font-inter);
   --font-heading: var(--font-instrument-serif);
-  --font-mono: var(--font-geist-mono);
 
   /* Colour: text ------------------------------------------------------- */
   --color-ink: var(--text-primary);
