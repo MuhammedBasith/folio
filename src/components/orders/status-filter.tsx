@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useCallback, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { ORDER_STATUSES, type OrderStatus } from "@/lib/domain/orders";
 import { STATUS_DESCRIPTIONS, STATUS_LABELS } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -9,17 +9,23 @@ import { cn } from "@/lib/utils";
 /**
  * Status filter.
  *
- * A segmented control, taken from the reference UIs: the selected item is a
- * raised white surface inside a sunken track, which reads as a physical switch
- * rather than as four separate buttons.
+ * THE INDICATOR SLIDES. A segmented control whose highlight teleports between
+ * options tells the user nothing about the relationship between where they were
+ * and where they are; one that travels shows it. This is the clearest case for
+ * animating anything in the product: the movement carries meaning, so it earns
+ * its 220ms.
  *
- * State lives in the URL, not in React. That makes a filtered view shareable and
- * survivable across a refresh, and it means the back button does what a user
- * expects instead of leaving the page.
+ * It is done by measuring the active button and driving a single absolutely
+ * positioned element, rather than by toggling a background class per option.
+ * That is what makes the motion continuous. `transform` and `width` only, so it
+ * stays off the layout path.
  *
- * The counts come from the parent, which already has every order in memory, so
- * showing them costs nothing and turns the filter into a summary as well as a
- * control.
+ * On the very first paint the indicator is placed without a transition. An
+ * element that slides in from the left edge on page load is animating a change
+ * that never happened.
+ *
+ * State lives in the URL, not in React, so a filtered view is shareable,
+ * survives a refresh, and the back button does what a user expects.
  */
 export function StatusFilter({
   counts,
@@ -34,6 +40,57 @@ export function StatusFilter({
   const [isPending, startTransition] = useTransition();
 
   const active = searchParams.get("status") ?? "all";
+
+  const listRef = useRef<HTMLDivElement>(null);
+  const buttonRefs = useRef(new Map<string, HTMLButtonElement>());
+  /**
+   * Position and "should it animate" are ONE piece of state.
+   *
+   * Splitting them meant either reading a ref during render or calling setState
+   * from an effect to flip a flag, and React's lint rules correctly reject
+   * both. Deriving `animate` inside the same update removes the question: it is
+   * false on the first placement and true on every one after, which is exactly
+   * the rule ("the first position is not a change, so do not animate it").
+   */
+  const [indicator, setIndicator] = useState<{
+    x: number;
+    w: number;
+    animate: boolean;
+  } | null>(null);
+
+  const measure = useCallback(() => {
+    const button = buttonRefs.current.get(active);
+    const list = listRef.current;
+
+    if (!button || !list) return;
+
+    setIndicator((previous) => ({
+      x: button.offsetLeft - list.scrollLeft,
+      w: button.offsetWidth,
+      animate: previous !== null,
+    }));
+  }, [active]);
+
+  /**
+   * Layout effect, not effect: this must run before paint, otherwise the
+   * indicator is visibly at the wrong position for one frame.
+   */
+  useLayoutEffect(() => {
+    measure();
+
+    const list = listRef.current;
+    if (!list) return;
+
+    // Fonts loading late, or the container resizing, both move the target.
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    list.addEventListener("scroll", measure, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      list.removeEventListener("scroll", measure);
+    };
+  }, [measure]);
 
   function select(value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -65,14 +122,30 @@ export function StatusFilter({
 
   return (
     <div
+      ref={listRef}
       role="group"
       aria-label="Filter orders by status"
       data-pending={isPending || undefined}
       className={cn(
-        "inline-flex w-full gap-1 overflow-x-auto rounded-lg border border-line bg-surface-sunken p-1 sm:w-auto",
-        "transition-opacity duration-[160ms] data-pending:opacity-60",
+        "relative inline-flex max-w-full gap-0.5 overflow-x-auto rounded-md border border-line bg-surface-sunken p-0.5",
+        "transition-opacity duration-160 data-pending:opacity-70",
       )}
     >
+      {indicator ? (
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute top-0.5 bottom-0.5 left-0 rounded-[5px] bg-surface shadow-raised",
+            indicator.animate &&
+              "transition-[transform,width] duration-220 ease-out-quint",
+          )}
+          style={{
+            transform: `translateX(${indicator.x}px)`,
+            width: `${indicator.w}px`,
+          }}
+        />
+      ) : null}
+
       {options.map((option) => {
         const selected = active === option.value;
 
@@ -80,23 +153,25 @@ export function StatusFilter({
           <button
             key={option.value}
             type="button"
+            ref={(node) => {
+              if (node) buttonRefs.current.set(option.value, node);
+              else buttonRefs.current.delete(option.value);
+            }}
             onClick={() => select(option.value)}
             aria-pressed={selected}
             title={option.description}
             className={cn(
-              "pressable inline-flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5",
+              "relative z-10 inline-flex shrink-0 items-center gap-1.5 rounded-[5px] px-2.5 py-1",
               "text-caption font-medium whitespace-nowrap",
-              "transition-colors duration-[160ms] ease-out-quint",
-              "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--focus-ring)]",
-              selected
-                ? "bg-surface text-ink shadow-raised"
-                : "text-ink-muted hover:text-ink",
+              "transition-colors duration-160 ease-out-quint",
+              "focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-(--focus-ring)",
+              selected ? "text-ink" : "text-ink-muted hover:text-ink",
             )}
           >
             {option.label}
             <span
               className={cn(
-                "text-caption tabular-nums",
+                "tabular-nums transition-colors duration-160",
                 selected ? "text-ink-faint" : "text-ink-disabled",
               )}
             >
