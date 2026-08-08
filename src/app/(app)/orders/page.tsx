@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Money } from "@/components/money";
+import { AgeingReport } from "@/components/orders/ageing-report";
 import { OrdersTable } from "@/components/orders/orders-table";
 import { OrderSearch } from "@/components/orders/order-search";
 import { StatusFilter } from "@/components/orders/status-filter";
@@ -122,10 +123,15 @@ export default async function OrdersPage({
       </div>
 
       {/* ---- Summary ----
-          A 1px gap over a `bg-line` parent, so the dividers are the parent
-          showing through. Hairlines meet perfectly at the corners, which
-          stacked borders never quite do. */}
-      <div className="mt-6 grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3">
+
+          THREE CARDS, NOT ONE STRIP. They were welded into a single bordered
+          block split by hairlines, which said "these are three columns of one
+          table". They are not: outstanding, overdue and collected are three
+          independent readings that happen to sit together, and one of them
+          turns red on its own. Separating them lets each carry its own edge and
+          its own state, and it matches the way the rest of the product treats a
+          card. */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Metric
           label="Outstanding"
           cents={outstandingCents}
@@ -155,6 +161,11 @@ export default async function OrdersPage({
           tone="positive"
         />
       </div>
+
+      {/* ---- Ageing ----
+          Renders nothing when everything is inside its terms, so it appears
+          only on the days it has something to say. */}
+      <AgeingReport orders={orders} asOf={asOf} />
 
       {/* ---- Filter and search, on one line ---- */}
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
@@ -224,7 +235,19 @@ function Metric({
   const resolved = live ? tone : "neutral";
 
   return (
-    <div className="bg-surface-raised px-4 py-3.5">
+    <div
+      className={cn(
+        "rounded-xl border bg-surface-raised px-4 py-3.5",
+        // The border carries the state too, not just the figure. A card that is
+        // entirely neutral except for one red number reads as a typo; tinting
+        // the edge makes the whole card the alert.
+        resolved === "alert"
+          ? "border-status-overdue-line"
+          : resolved === "positive"
+            ? "border-status-paid-line/70"
+            : "border-line",
+      )}
+    >
       <p className="text-caption text-ink-faint">{label}</p>
 
       <p
