@@ -24,7 +24,13 @@ import { StatusDot } from "@/components/status-badge";
  */
 export function Hero() {
   return (
-    <section className="relative overflow-hidden px-5 pt-14 pb-4 md:px-8 md:pt-20">
+    <section className="relative overflow-hidden px-5 pt-28 pb-4 md:px-8 md:pt-32">
+      {/*
+        The top padding above clears the fixed header. It is a plain value
+        rather than anything measured: the header is 56px tall at rest and this
+        is the only page it floats over, so a variable would be indirection for
+        one number.
+      */}
       {/*
         The light sits BELOW the headline, not behind it. A glow behind
         centred type makes the type look like it is being lit from a lamp
@@ -44,11 +50,16 @@ export function Hero() {
       />
 
       <div className="relative mx-auto max-w-3xl text-center">
-        <p className="blur-rise font-mono text-caption text-ink-faint">
+        {/*
+          The eyebrow belongs TO the headline, so it sits close to it. At mt-5
+          the two read as separate paragraphs that happen to be stacked, and the
+          eyebrow lost its job of introducing the line under it.
+        */}
+        <p className="blur-rise text-caption text-ink-faint">
           Orders and settlements
         </p>
 
-        <h1 className="blur-rise mt-5 font-heading text-display-hero text-balance text-ink [--stagger-index:1]">
+        <h1 className="blur-rise mt-2.5 font-heading text-display-hero text-balance text-ink [--stagger-index:1]">
           Know exactly who owes you what.
         </h1>
 
@@ -94,7 +105,7 @@ function HeroFragments() {
       {/* Left: an order, as it appears in the list. */}
       <Fragment index={0} className="sm:absolute sm:top-10 sm:left-0 sm:w-76 md:left-2">
         <div className="flex items-baseline justify-between gap-4">
-          <span className="font-mono text-caption text-ink-faint">
+          <span className="text-caption text-ink-faint tabular-nums">
             ORD-0002
           </span>
           <StatusDot status="overdue" className="text-caption" />
@@ -127,7 +138,7 @@ function HeroFragments() {
         className="sm:absolute sm:top-28 sm:right-0 sm:w-68 md:right-2"
       >
         <div className="flex items-baseline justify-between gap-4">
-          <span className="font-mono text-caption text-ink-faint">
+          <span className="text-caption text-ink-faint tabular-nums">
             ORD-0005
           </span>
           <StatusDot status="paid" className="text-caption" />

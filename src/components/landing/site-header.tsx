@@ -14,75 +14,114 @@ const SECTIONS = [
 ];
 
 /**
- * Marketing header.
+ * Marketing header: a full-width bar that condenses into a floating pill.
  *
- * WHAT IT IS NOT: a bordered bar pinned to the top of the page with tabs in it.
- * That was the previous version and it read as chrome from 1999. A rule across
- * the full width of a page announces "application"; a marketing page wants the
- * content to start at the top of the screen.
+ * AT THE TOP it is not a bar at all. No border, no background, nothing between
+ * the wordmark and the hero. A rule across the full width of a page announces
+ * "application chrome", and a marketing page wants the content to start at the
+ * top of the screen.
  *
- * So: no border and a transparent ground at rest, and the bar only materialises
- * once the page has scrolled under it, when it genuinely needs to separate
- * itself from what is passing beneath. The transition is on background, border
- * and blur only, which are all cheap.
+ * ON SCROLL it collapses: the container narrows to a pill, gains a frosted
+ * ground, and the wordmark text slides shut behind the mark. Everything moving
+ * is a property that composes on the compositor (max-width, padding, radius,
+ * colour, blur), so the whole thing is one transition rather than a layout
+ * thrash, and the links never reflow because their own box does not change.
  *
- * The wordmark is deliberately larger than the one inside the product. Here it
- * is the brand; there it is a way home.
+ * The wordmark collapsing is the part that earns it. A pill that keeps the full
+ * lockup is just a smaller bar; dropping to the mark alone makes the scrolled
+ * state read as an emblem, and it buys back the width the pill gave up.
+ *
+ * It reveals on the frame after mount rather than rendering immediately,
+ * because `scrollY` is only knowable on the client. Without it, anyone landing
+ * mid-page (a refresh, a hash link) sees the expanded bar for one frame and
+ * then watches it snap shut.
  */
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
+  const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
+    const onScroll = () => setScrolled(window.scrollY > 24);
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+
+    // Next frame, not synchronously in the effect body: reading and setting in
+    // the same tick would render twice before paint for no benefit.
+    const frame = requestAnimationFrame(() => {
+      onScroll();
+      setReady(true);
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
+
+  const condensed = scrolled && !open;
 
   return (
     <header
-      data-scrolled={scrolled || undefined}
       className={cn(
-        "sticky top-0 z-40 border-b border-transparent",
-        "transition-[background-color,border-color,backdrop-filter] duration-280 ease-out-quint",
-        "data-scrolled:border-line data-scrolled:bg-surface-canvas/78 data-scrolled:backdrop-blur-xl",
+        "fixed inset-x-0 top-0 z-40 flex flex-col items-center px-3",
+        "transition-opacity duration-350 ease-out-quint",
+        ready ? "opacity-100" : "opacity-0",
       )}
     >
-      <div className="mx-auto flex h-16 w-full max-w-content items-center gap-6 px-5 md:px-8">
+      <div
+        className={cn(
+          "flex w-full items-center gap-4",
+          "border transition-[max-width,margin,padding,border-radius,border-color,background-color,box-shadow] duration-500 ease-drawer",
+          condensed
+            ? "mt-2.5 max-w-3xl rounded-full border-line bg-surface-canvas/72 px-3 py-1.5 shadow-raised backdrop-blur-xl"
+            : "mt-3 max-w-content rounded-none border-transparent bg-transparent px-2 py-3 md:mt-4 md:px-6",
+        )}
+      >
         <Link
           href="/"
-          className="group inline-flex items-center gap-2.5 text-ink"
+          className="group inline-flex shrink-0 items-center text-ink"
           aria-label="Folio home"
         >
-          <Mark className="size-5 transition-transform duration-280 ease-spring group-hover:rotate-90" />
-          <span className="font-heading text-[1.5rem] leading-none tracking-[-0.028em]">
+          <Mark className="size-5 shrink-0 transition-transform duration-280 ease-spring group-hover:rotate-90" />
+          {/*
+            `max-width` and `opacity`, never `display`. A hidden element cannot
+            transition, so swapping visibility would make the wordmark pop in
+            and out while everything around it glides.
+          */}
+          <span
+            className={cn(
+              "overflow-hidden font-heading leading-none whitespace-nowrap",
+              "text-[1.5rem] tracking-[-0.028em]",
+              "transition-[max-width,opacity,margin] duration-400 ease-drawer",
+              condensed ? "ml-0 max-w-0 opacity-0" : "ml-2.5 max-w-40 opacity-100",
+            )}
+          >
             Folio
           </span>
         </Link>
 
-        <nav className="ml-4 hidden items-center gap-7 md:flex">
+        <nav className="hidden items-center gap-1 md:flex">
           {SECTIONS.map((section) => (
             <a
               key={section.href}
               href={section.href}
-              className="text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink"
+              className="rounded-full px-3 py-1.5 text-body-sm text-ink-muted transition-colors duration-160 hover:bg-action-ghost-hover hover:text-ink"
             >
               {section.label}
             </a>
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5">
+        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
           <ThemeToggle />
           <Link
             href="/login"
-            className="hidden text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink sm:inline"
+            className="hidden rounded-full px-2.5 py-1.5 text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink sm:inline-block"
           >
             Sign in
           </Link>
-          <Button asChild size="sm" className="rounded-lg px-3.5">
+          <Button asChild size="sm" className="rounded-full px-4">
             <Link href="/login">Open the demo</Link>
           </Button>
           <MenuButton open={open} onToggle={() => setOpen((value) => !value)} />
@@ -90,36 +129,39 @@ export function SiteHeader() {
       </div>
 
       {/*
-        Mobile sheet. Animating max-height rather than height because the
-        content has no fixed size, and animating opacity alongside so the links
-        do not appear before there is room for them.
+        Mobile sheet, inside the same floating container so it hangs off the
+        pill rather than spanning the viewport. `grid-template-rows` from 0fr to
+        1fr animates to the content's real height without anyone having to
+        guess a max-height that is wrong for one of the two states.
       */}
       <div
         id="site-menu"
         className={cn(
-          "overflow-hidden md:hidden",
-          "transition-[max-height,opacity] duration-280 ease-drawer",
-          open ? "max-h-64 opacity-100" : "max-h-0 opacity-0",
+          "grid w-full max-w-3xl overflow-hidden md:hidden",
+          "transition-[grid-template-rows,opacity] duration-350 ease-drawer",
+          open ? "mt-1.5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
         )}
       >
-        <div className="flex flex-col gap-0.5 border-t border-line bg-surface-canvas/92 px-5 py-3 backdrop-blur-xl">
-          {SECTIONS.map((section) => (
-            <a
-              key={section.href}
-              href={section.href}
+        <div className="min-h-0">
+          <div className="flex flex-col gap-0.5 rounded-2xl border border-line bg-surface-canvas/92 p-2 shadow-overlay backdrop-blur-xl">
+            {SECTIONS.map((section) => (
+              <a
+                key={section.href}
+                href={section.href}
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-body text-ink-muted transition-colors duration-160 hover:bg-action-ghost-hover hover:text-ink"
+              >
+                {section.label}
+              </a>
+            ))}
+            <Link
+              href="/login"
               onClick={() => setOpen(false)}
-              className="rounded-md px-2 py-2.5 text-body text-ink-muted transition-colors duration-160 hover:bg-action-ghost-hover hover:text-ink"
+              className="rounded-lg px-3 py-2.5 text-body text-ink-muted transition-colors duration-160 hover:bg-action-ghost-hover hover:text-ink"
             >
-              {section.label}
-            </a>
-          ))}
-          <Link
-            href="/login"
-            onClick={() => setOpen(false)}
-            className="rounded-md px-2 py-2.5 text-body text-ink-muted transition-colors duration-160 hover:bg-action-ghost-hover hover:text-ink"
-          >
-            Sign in
-          </Link>
+              Sign in
+            </Link>
+          </div>
         </div>
       </div>
     </header>
@@ -147,18 +189,18 @@ function MenuButton({
       aria-label={open ? "Close menu" : "Open menu"}
       aria-expanded={open}
       aria-controls="site-menu"
-      className="-mr-1 flex size-8 shrink-0 flex-col items-end justify-center gap-1.5 md:hidden"
+      className="flex size-8 shrink-0 flex-col items-center justify-center gap-1.5 md:hidden"
     >
       <span
         className={cn(
-          "block h-px w-4.5 rounded-full bg-ink transition-transform duration-280 ease-out-quint",
+          "block h-px w-4 rounded-full bg-ink transition-transform duration-280 ease-out-quint",
           open && "translate-y-[3.5px] rotate-45",
         )}
       />
       <span
         className={cn(
-          "block h-px rounded-full bg-ink transition-[transform,width] duration-280 ease-out-quint",
-          open ? "w-4.5 -translate-y-[3.5px] -rotate-45" : "w-3",
+          "block h-px w-4 rounded-full bg-ink transition-transform duration-280 ease-out-quint",
+          open && "-translate-y-[3.5px] -rotate-45",
         )}
       />
     </button>
