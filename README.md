@@ -1,14 +1,17 @@
-# Ledger, orders and settlements
+# Tally
 
-A small web application for tracking what customers owe you. Create orders with
-line items, record payments against them as the money arrives, and see at a
-glance which invoices are short and which ones are late.
+**Know exactly who owes you what.**
 
-**Live URL:** _add before submitting_
+Tally is a small application for tracking orders and the payments that settle
+them. Write down what a customer ordered, record each payment as it arrives, and
+Tally works out the balance, decides whether the order is short or late, and
+keeps the arithmetic exact to the cent.
 
-**Demo sign in:** `demo@ledger.app` / `demo1234`
-The demo account is seeded with seven orders covering every status, including
-one that was overdue and is now settled, and one with a single cent outstanding.
+**Live:** _add your deployment URL_
+
+**Demo:** `demo@tally.app` / `demo1234`
+Seeded with seven orders covering every status, including one that was overdue
+and is now settled, and one with a single cent outstanding.
 
 ---
 
@@ -31,14 +34,16 @@ one that was overdue and is now settled, and one with a single cent outstanding.
 
 ## What this is
 
-One business owner signs in and keeps a private record of their own orders. The
-customer is a name on an order, not an account: customers never see this
-application, receive nothing from it, and cannot log in. "Recording a payment"
-means the owner writing down that money arrived, not the customer paying through
-the app. No money moves through this system.
+Tally is a private ledger, not a payment processor.
 
-Authentication exists so that several unrelated businesses can use the same
-deployment without ever seeing each other's data.
+One business owner signs in and keeps a record of their own orders. A customer
+is a name on an order, not an account: customers never see Tally, receive
+nothing from it, and cannot log in. "Recording a payment" means the owner
+writing down that money arrived, not the customer paying through the app. No
+money moves through this system.
+
+Accounts exist so that several unrelated businesses can share one deployment
+without ever seeing each other's data.
 
 ---
 
@@ -46,14 +51,14 @@ deployment without ever seeing each other's data.
 
 ### Prerequisites
 
-- Node.js 20 or newer (developed on 22.14)
+- [Bun](https://bun.sh) 1.3 or newer
 - PostgreSQL 14 or newer
 
 ### Setup
 
 ```bash
 # 1. Install
-npm install
+bun install
 
 # 2. Configure
 cp .env.example .env
@@ -61,16 +66,16 @@ cp .env.example .env
 #    openssl rand -base64 48
 
 # 3. Create the schema
-npm run db:deploy
+bun run db:deploy
 
 # 4. Seed the demo data (optional but recommended)
-npm run db:seed
+bun run db:seed
 
 # 5. Run
-npm run dev
+bun run dev
 ```
 
-Open http://localhost:3000 and sign in with `demo@ledger.app` / `demo1234`.
+Open http://localhost:3000 and sign in with `demo@tally.app` / `demo1234`.
 
 ### Environment variables
 
@@ -83,20 +88,20 @@ Open http://localhost:3000 and sign in with `demo@ledger.app` / `demo1234`.
 ### Commands
 
 ```bash
-npm run dev               # development server
-npm run build             # production build
-npm run verify            # typecheck + lint + unit tests
+bun run dev               # development server
+bun run build             # production build
+bun run verify            # typecheck + lint + unit tests
 
-npm run test              # unit tests (pure logic, no I/O)
-npm run test:integration  # integration tests (needs a test database, see Testing)
-npm run test:all          # both
+bun run test              # unit tests (pure logic, no I/O)
+bun run test:integration  # integration tests (needs a test database, see Testing)
+bun run test:all          # both
 
-npm run db:migrate        # create and apply a migration
-npm run db:deploy         # apply existing migrations
-npm run db:seed           # load demo data
-npm run db:studio         # browse the database
+bun run db:migrate        # create and apply a migration
+bun run db:deploy         # apply existing migrations
+bun run db:seed           # load demo data
+bun run db:studio         # browse the database
 
-node scripts/smoke.mjs [baseUrl]   # end-to-end API smoke test over HTTP
+bun scripts/smoke.mjs [baseUrl]   # end-to-end API smoke test over HTTP
 ```
 
 ---
@@ -185,8 +190,8 @@ wrong. Clients parse typed input once, with the shared parser, before sending.
 `2,147,483,647` so a column can never overflow. Line quantity is capped at
 `100,000`.
 
-**Rounding.** There is none, because there is nothing to round: this assignment
-has no tax and no discount, and both operands of `quantity × unitPriceCents` are
+**Rounding.** There is none, because there is nothing to round: there is no tax
+and no discount here, and both operands of `quantity × unitPriceCents` are
 already integers. Input with more than two decimal places is rejected rather
 than rounded, because silently turning an entered `10.999` into `11.00` changes
 what the user said.
@@ -337,7 +342,7 @@ without a cookie jar.
 ```bash
 TOKEN=$(curl -s -X POST localhost:3000/api/auth/login \
   -H 'content-type: application/json' \
-  -d '{"email":"demo@ledger.app","password":"demo1234"}' | jq -r .token)
+  -d '{"email":"demo@tally.app","password":"demo1234"}' | jq -r .token)
 
 curl -s localhost:3000/api/orders -H "authorization: Bearer $TOKEN" | jq
 ```
@@ -407,14 +412,14 @@ order exists.
 ### Running them
 
 ```bash
-npm run test              # unit
+bun run test              # unit
 
 createdb crossval_test
 cp .env.example .env.test   # point DATABASE_URL at crossval_test
-npm run test:integration    # refuses to run unless the URL contains "test"
+bun run test:integration    # refuses to run unless the URL contains "test"
 
-npm run dev &
-node scripts/smoke.mjs
+bun run dev &
+bun scripts/smoke.mjs
 ```
 
 ### These tests were verified by mutating the source
@@ -516,6 +521,10 @@ happens in one file. `/tokens` renders the whole system as a live reference.
 
 A few decisions worth stating:
 
+- **The type scale is deliberately small.** Body is 14px, secondary text 13px,
+  metadata 12px, and section headings 17px. This is a dense financial tool, and
+  a 36px heading leaves no room to make anything else feel important. Hierarchy
+  comes from weight, colour and space.
 - **Elevation is tint, not shadow.** Surfaces separate by getting fractionally
   darker and carrying a hairline border. Shadows are reserved for things that
   genuinely float (dialogs, dropdowns).
@@ -527,6 +536,14 @@ A few decisions worth stating:
 - **Press feedback is asymmetric.** 100ms down with a hard ease-out, 160ms back
   with a slight overshoot. Fast acknowledgement, unhurried settle. Bounce is
   kept low because this is a money screen.
+- **The status filter's indicator travels.** A highlight that teleports says
+  nothing about the relationship between where you were and where you are. It
+  is one element driven by measurement, not a background class toggled per
+  option, which is what makes the motion continuous. It does not animate on
+  first paint, because the first position is not a change.
+- **Status is a dot in lists and a pill only on a detail page.** Forty tinted
+  pills stacked down a table read as decoration; a dot carries the same
+  information at a fraction of the weight and keeps the column scannable.
 - **Radius is a five-step scale**, not one value everywhere. Small controls sit
   tighter than the panels containing them.
 - **Reduced motion is surgical.** Movement is removed because that is what
@@ -535,7 +552,9 @@ A few decisions worth stating:
 - **Money uses tabular figures** so decimal points stack down a column.
 
 Typography is Instrument Serif for display sizes and Inter for everything else,
-with a monospace face for references and identifiers only.
+with a monospace face for references, amounts in fixed contexts, and eyebrow
+labels. The pairing is the point: a distinctive display face against a neutral
+text face is what stops an interface reading as a default.
 
 ---
 
@@ -624,8 +643,8 @@ Built for Vercel with Neon PostgreSQL, though nothing is Vercel-specific.
 4. Deploy. `postinstall` runs `prisma generate`.
 5. Apply the schema and seed:
    ```bash
-   DIRECT_URL="…" npx prisma migrate deploy
-   DIRECT_URL="…" npm run db:seed
+   DIRECT_URL="…" bunx prisma migrate deploy
+   DIRECT_URL="…" bun run db:seed
    ```
 
 **One thing worth knowing:** Neon's free tier suspends a database after about
