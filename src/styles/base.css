@@ -22,8 +22,8 @@
     background-color: var(--surface-page);
     color: var(--text-primary);
     font-size: var(--text-body);
-    line-height: 1.6;
-    letter-spacing: -0.009em;
+    line-height: 1.55;
+    letter-spacing: -0.008em;
   }
 
   /**
