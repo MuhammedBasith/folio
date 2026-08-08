@@ -75,7 +75,12 @@ export function SiteHeader() {
           "border transition-[max-width,margin,padding,border-radius,border-color,background-color,box-shadow] duration-500 ease-drawer",
           condensed
             ? "mt-2.5 max-w-3xl rounded-full border-line bg-surface-canvas/72 px-3 py-1.5 shadow-raised backdrop-blur-xl"
-            : "mt-3 max-w-content rounded-none border-transparent bg-transparent px-2 py-3 md:mt-4 md:px-6",
+            : // The resting bar shares the page gutter (px-5 / md:px-8) so the
+              // mark sits on the same vertical line as the content below it.
+              // At px-2 it was jammed against the viewport edge while the
+              // button on the right had its own padding holding it off, and the
+              // two sides read as different margins.
+              "mt-3 max-w-content rounded-none border-transparent bg-transparent px-5 py-3 md:mt-4 md:px-8",
         )}
       >
         <Link
