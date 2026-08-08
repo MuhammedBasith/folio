@@ -427,7 +427,7 @@ order exists.
 ## Testing
 
 ```
-153  unit tests         pure logic, no I/O, ~200ms
+160  unit tests         pure logic, no I/O, ~200ms
 30   integration tests  real PostgreSQL, real transactions, real locks
 56   smoke checks       end-to-end over HTTP against a running server
 32   screenshots        every page, both themes, desktop and phone
@@ -482,6 +482,8 @@ working code to confirm the suite catches it:
 | Allow one extra login attempt past the limit | 4 |
 | Key the rate limiter on the last forwarded hop | 1 |
 | Drop the scope from the rate limit key | 5 |
+| Trust the forwarded header unconditionally | 2 |
+| Tighten the signup budget below honest fumbling | 1 |
 
 ### A critical bug found by adversarial review
 
@@ -814,6 +816,14 @@ DATABASE_URL   the pooled Neon string
 DIRECT_URL     the unpooled Neon string
 AUTH_SECRET    openssl rand -base64 48
 ```
+
+One optional variable, `TRUST_PROXY_HEADERS`. It defaults to `true` and should
+stay that way on Vercel: the platform overwrites `x-forwarded-for`, so the
+header is authoritative and rate limiting can tell callers apart. Set it to
+`false` **only** if you deploy with no proxy in front, where a client could
+forge the header and mint itself a fresh bucket per request. The limiter then
+falls back to one shared bucket, which is the honest answer when there is no way
+to distinguish callers.
 
 `AUTH_SECRET` signs every session. Use a different one per environment, and
 never reuse the one from your machine: rotating it invalidates every session,
