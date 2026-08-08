@@ -69,8 +69,21 @@ export function ProductPreview() {
     <section className="mx-auto w-full max-w-content px-5 pb-4 md:px-8">
       <Reveal>
         <div className="overflow-hidden rounded-2xl border border-line bg-surface-raised shadow-overlay">
-          {/* ---- Summary strip ---- */}
-          <div className="grid gap-px bg-line sm:grid-cols-3">
+          {/*
+            ---- Summary strip ----
+
+            THREE ACROSS AT EVERY WIDTH, INCLUDING A PHONE. Stacked, these were
+            three separate rows of a number and a caption, and the one thing
+            that makes them a summary is being able to read them against each
+            other in a single glance. A phone that has to scroll between
+            "outstanding" and "overdue" has lost the comparison the strip exists
+            for.
+
+            They fit because the figures step down a size below `sm` rather than
+            because the numbers are short: at 22px three of these would collide
+            around 360px wide.
+          */}
+          <div className="grid grid-cols-3 gap-px bg-line">
             <Figure
               label="Outstanding"
               cents={736_800}
@@ -164,16 +177,23 @@ function Figure({
   alert?: boolean;
 }) {
   return (
-    <div className="bg-surface-raised px-4 py-4">
+    <div className="bg-surface-raised px-3 py-3.5 sm:px-4 sm:py-4">
       <p className="text-caption text-ink-faint">{label}</p>
       <p
-        className={`mt-1.5 text-metric-lg ${
+        className={`mt-1.5 text-metric sm:text-metric-lg ${
           alert ? "text-status-overdue-ink" : "text-ink"
         }`}
       >
         <Money cents={cents} />
       </p>
-      <p className="mt-0.5 text-caption text-ink-faint">{note}</p>
+      {/*
+        The note is the first thing to go on a narrow screen. Three of these
+        wrapping to two lines each turns a summary into a paragraph, and the
+        figure above it already says everything the strip is for.
+      */}
+      <p className="mt-0.5 hidden text-caption text-ink-faint sm:block">
+        {note}
+      </p>
     </div>
   );
 }
