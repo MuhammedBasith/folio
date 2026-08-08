@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme/theme-provider";
 // "use client" module gives a Server Component `undefined`, which is exactly
 // how the script below once shipped as `localStorage.getItem(undefined)`.
 import { DEFAULT_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 /**
@@ -26,14 +27,66 @@ const instrumentSerif = Instrument_Serif({
 });
 
 
+/**
+ * Site-wide metadata. Every page inherits this and overrides what it needs.
+ *
+ * `metadataBase` IS THE LOAD-BEARING LINE. Next resolves every relative URL in
+ * metadata against it: the canonical tags, and the `og:image` that the
+ * `opengraph-image.png` file convention generates. Without it those come out
+ * relative, and a relative `og:image` is unresolvable to every scraper that
+ * matters, so the link previews go blank while the page itself looks perfect.
+ * It is also the one thing that cannot be inferred, because the server has no
+ * idea what hostname it is being served under.
+ *
+ * The Open Graph and Twitter images are deliberately NOT listed here. The
+ * `opengraph-image.png` and `twitter-image.png` files beside this one are a
+ * Next file convention, and it emits the tags, the dimensions and a content
+ * hash in the query string on its own.
+ *
+ * THE HASH IS WHY THIS IS LEFT ALONE, and it is a real trade rather than
+ * laziness. Declaring `openGraph.images` by hand does not duplicate the tag, it
+ * REPLACES the generated one, which buys an `og:image:alt` and costs the hash.
+ * Social platforms cache a card by URL for days, so a stable URL means every
+ * future redesign of the card is invisible everywhere it has already been
+ * shared. An alt attribute with patchy platform support is not worth a
+ * permanently stale preview.
+ *
+ * The documented `opengraph-image.alt.txt` convention would give the alt back
+ * for free and does not work here: it is implemented in Next's webpack metadata
+ * loader only, and this project builds with Turbopack, which has no equivalent.
+ * Adding the file produces no tag and no warning, so it is not worth adding.
+ *
+ * No `keywords`. Google has ignored that tag since 2009, and the other engines
+ * that read it treat a long list as a spam signal.
+ *
+ * NO CANONICAL, AND NO `og:url`, EITHER. Both are per-page facts, and metadata
+ * merges shallowly: whatever is set here is inherited by every route that does
+ * not replace it, so a canonical of "/" declared once at the root would tell a
+ * crawler that the token reference, the sign in page and every order screen are
+ * all duplicates of the landing page. The two pages worth indexing declare
+ * their own; the rest are `noindex` and want no canonical at all.
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Folio · orders and settlements",
     template: "%s · Folio",
   },
-  description:
-    "Track what customers owe you, record payments as they arrive, and see at a glance who is overdue.",
-  applicationName: "Folio",
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: "Folio · orders and settlements",
+    description: SITE_DESCRIPTION,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Folio · orders and settlements",
+    description: SITE_DESCRIPTION,
+    creator: "@MuhammedBasith_",
+  },
 };
 
 /**
