@@ -150,11 +150,13 @@ export function SiteFooter() {
              * deliberate half-sunk wordmark. Below that the letters were simply
              * tiny on a phone.
              *
-             * Deriving the height from the size fixes the proportion at every
-             * width: 46% of the type size is enough strip to clear the cap
-             * height of Instrument Serif with room to spare, and the 40%
-             * downward shift puts the baseline below the crop so exactly the
-             * upper half of the letterforms shows.
+             * The two numbers are measured, not guessed. Rendered at 300px,
+             * Instrument Serif puts the ink of "Folio" between 10% and 85% of
+             * the font-size box. With the strip at 46% of the size, a 50%
+             * downward shift lands the top of the ink 6% of the size below the
+             * crop, which is real clearance rather than the hairline the
+             * previous 40% left. Just over half the letterforms show, and the
+             * mask dissolves the rest.
              *
              * The viewport share is generous (34vw) so a phone gets a wordmark
              * worth looking at, and the cap keeps it sane on a wide display.
@@ -174,7 +176,7 @@ export function SiteFooter() {
               lineHeight: 1,
               letterSpacing: "-0.03em",
               paddingRight: "0.06em",
-              transform: "translate(-50%, 40%)",
+              transform: "translate(-50%, 50%)",
               opacity: 0.1,
             }}
           >
