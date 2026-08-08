@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SiteHeader } from "@/components/landing/site-header";
 import { Hero } from "@/components/landing/hero";
@@ -6,6 +7,7 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { StatusRule, Exactness } from "@/components/landing/arguments";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { getCurrentUser } from "@/server/auth/current-user";
+import { INDEXABLE, SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 
 /**
  * Landing page.
@@ -27,6 +29,27 @@ import { getCurrentUser } from "@/server/auth/current-user";
  * Anyone already signed in never sees it. Sending a logged-in user to a page
  * whose main call to action is "open the demo" is a small insult.
  */
+/**
+ * The canonical and `og:url` live here rather than in the root layout, because
+ * every route inherits what the layout sets and only this one is actually "/".
+ *
+ * Setting `openGraph` at all replaces the root's object wholesale, so the
+ * fields that matter are restated rather than added to. Title and description
+ * are the site's, because on the landing page they are the same thing.
+ */
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+  robots: INDEXABLE,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: "Folio · orders and settlements",
+    description: SITE_DESCRIPTION,
+    url: "/",
+    locale: "en_US",
+  },
+};
+
 export default async function LandingPage() {
   if (await getCurrentUser()) {
     redirect("/orders");
