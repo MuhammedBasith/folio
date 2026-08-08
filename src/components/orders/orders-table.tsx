@@ -110,13 +110,24 @@ export function OrdersTable({ orders }: { orders: OrderDto[] }) {
               >
                 <Td>
                   {/*
-                    The link is stretched across the row rather than the row
-                    being an onClick handler. That keeps it a real anchor:
-                    keyboard focusable, middle-clickable, and copyable.
+                    A stretched anchor, not an onClick on the row, so it stays a
+                    real link: keyboard focusable, middle-clickable, copyable.
+
+                    Its ::after covers the whole row, so the anchor's own
+                    outline would ring the customer cell alone. The outline is
+                    moved onto the ::after box instead, which is the shape the
+                    user is about to activate. Removing the indicator without
+                    replacing it would leave keyboard users with no idea where
+                    they are.
                   */}
                   <Link
                     href={`/orders/${order.id}`}
-                    className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+                    className={cn(
+                      "after:absolute after:inset-0 after:content-[''] after:rounded-sm",
+                      "outline-none",
+                      "focus-visible:after:outline-2 focus-visible:after:outline-offset-[-2px]",
+                      "focus-visible:after:outline-[var(--focus-ring)]",
+                    )}
                   >
                     <span className="block font-medium text-ink">
                       {order.customer}
