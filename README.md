@@ -623,6 +623,20 @@ A few decisions worth stating:
   mathematically smooth, which is exactly what the eye reads as synthetic, and
   it bands on an 8-bit display. A photograph of coloured light has grain and
   drift in it, which is what makes light look like light.
+- **A blurred, masked plate has two opposite failure modes, and I hit both.**
+  `mask-repeat` defaults to `repeat`, so the blur bleeding past the border box
+  meets a fresh opaque tile of the mask and draws a seam exactly on the box
+  edge. Setting `no-repeat` while the falloff still runs to 88% swaps that for a
+  worse fault: the mask cuts the blur off at the edge, and the glow reads as a
+  rectangle. It needs both, `no-repeat` AND a falloff that reaches zero at 70%
+  of the radius, so the outer third of the box is already transparent and there
+  is nothing left for either boundary to cut.
+- **The light is not allowed to belong to one section.** No section carries
+  `overflow-hidden`; the page wrapper uses `overflow-x: clip`, which stops
+  sideways scrolling without creating a scroll container the way `hidden` would,
+  so a plate is free to bleed down into whatever comes next. The body picks up
+  the landing ground through `:has()`, because a plate hanging past the wrapper
+  would otherwise paint onto the product's page colour and show a seam.
 - **Grain is on everything.** A fixed fractal-noise tile at 5.5%, multiplying on
   paper and screening on charcoal. It is the difference between a large flat
   field reading as a printed surface and reading as a screenshot.
