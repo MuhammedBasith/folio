@@ -66,10 +66,24 @@ export function Hero() {
           Know exactly who owes you what.
         </h1>
 
+        {/*
+          THE SENTENCE GETS SHORTER ON A PHONE, IT IS NOT A SECOND COPY OF IT.
+
+          The full version runs to five lines on a 390px screen, which is a wall
+          of grey directly under the headline and the point where a reader
+          scrolls past. Rather than write the paragraph twice, the shared part
+          is written once and only the tail differs: `display: none` also takes
+          the hidden tail out of the accessibility tree, so a phone reader hears
+          the short version rather than both.
+        */}
         <p className="blur-rise mx-auto mt-5 max-w-xl text-body-lg text-ink-muted [--stagger-index:2]">
           Write down what a customer ordered. Record each payment as it lands.
-          Folio works out the balance, decides whether the order is short or
-          late, and keeps the arithmetic exact to the cent.
+          Folio works out the balance
+          <span className="sm:hidden"> and the status.</span>
+          <span className="hidden sm:inline">
+            , decides whether the order is short or late, and keeps the
+            arithmetic exact to the cent.
+          </span>
         </p>
 
         <div className="blur-rise mt-8 flex flex-col items-center gap-3.5 [--stagger-index:3]">
@@ -97,16 +111,33 @@ export function Hero() {
  * The three floating pieces.
  *
  * TWO LAYOUTS, NOT ONE THAT SHRINKS. From `sm` up they are absolutely
- * positioned so they can overlap and sit at different depths, which is the
- * whole reason they read as floating rather than as a row of three cards. Below
- * `sm` that same arrangement is three 280px cards inside a 350px column, which
- * is not a composition, it is a pile: they stack in normal flow instead.
+ * positioned so they can sit at different depths across the full width, which
+ * is the whole reason they read as floating rather than as a row of three
+ * cards. That arrangement cannot survive a 350px column, so below `sm` they
+ * return to normal flow.
+ *
+ * BUT NOT AS A COLUMN OF FULL-WIDTH BLOCKS. Three identical bars stacked down
+ * the middle of a phone read as a list of items, which is the one thing these
+ * are not: they are meant to look like pieces of an interface caught mid-air.
+ * So each one takes about two thirds of the width and the three step across the
+ * screen, left to centre to right, in the same order they sit in on a desktop.
+ * The offsets are what carry the composition once the overlap is gone.
+ *
+ * The widths are percentages, so the three offsets hold their proportions from
+ * a 320px phone upward instead of collapsing into a centred column. The caps
+ * are what stop that working against itself: 74% of a 620px tablet is a 458px
+ * card holding one customer name and one figure, which is a fragment stretched
+ * into a banner. Capped near the sizes they take at `sm`, they keep their
+ * proportions and the extra room goes into the offsets instead.
  */
 function HeroFragments() {
   return (
-    <div className="relative mx-auto mt-10 flex w-full max-w-4xl flex-col items-center gap-3 sm:mt-12 sm:block sm:h-72 md:mt-14">
+    <div className="relative mx-auto mt-10 flex w-full max-w-4xl flex-col gap-2.5 sm:mt-12 sm:block sm:h-72 md:mt-14">
       {/* Left: an order, as it appears in the list. */}
-      <Fragment index={0} className="sm:absolute sm:top-10 sm:left-0 sm:w-76 md:left-2">
+      <Fragment
+        index={0}
+        className="mr-auto w-[74%] max-w-80 sm:absolute sm:top-10 sm:left-0 sm:mr-0 sm:w-76 md:left-2"
+      >
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-caption text-ink-faint tabular-nums">
             ORD-0002
@@ -124,7 +155,7 @@ function HeroFragments() {
           rather than as a third panel. */}
       <Fragment
         index={1}
-        className="sm:absolute sm:top-0 sm:left-1/2 sm:w-62 sm:-translate-x-1/2"
+        className="mx-auto w-[62%] max-w-68 sm:absolute sm:top-0 sm:left-1/2 sm:w-62 sm:-translate-x-1/2"
       >
         <p className="text-caption text-ink-faint">Payment recorded</p>
         <p className="mt-1.5 text-metric-lg text-ink">
@@ -138,7 +169,7 @@ function HeroFragments() {
       {/* Right: the outcome. */}
       <Fragment
         index={2}
-        className="sm:absolute sm:top-28 sm:right-0 sm:w-68 md:right-2"
+        className="ml-auto w-[74%] max-w-80 sm:absolute sm:top-28 sm:right-0 sm:ml-0 sm:w-68 md:right-2"
       >
         <div className="flex items-baseline justify-between gap-4">
           <span className="text-caption text-ink-faint tabular-nums">
@@ -169,7 +200,7 @@ function Fragment({
     <div
       aria-hidden
       style={{ "--stagger-index": index + 4 } as React.CSSProperties}
-      className={`blur-rise w-full max-w-xs rounded-xl border border-line bg-surface-raised/86 p-4 shadow-overlay backdrop-blur-md sm:max-w-none ${className ?? ""}`}
+      className={`blur-rise rounded-xl border border-line bg-surface-raised/86 p-3.5 shadow-overlay backdrop-blur-md sm:p-4 ${className ?? ""}`}
     >
       {children}
     </div>
