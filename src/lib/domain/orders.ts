@@ -339,3 +339,128 @@ export function compareByUrgency(
   // Everywhere else, soonest (or longest overdue) first.
   return a.dueDate.localeCompare(b.dueDate);
 }
+
+/* ------------------------------------------------------------------ */
+/* Ageing                                                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Debtor ageing.
+ *
+ * This is the one report every accounts receivable ledger in the world has, and
+ * the reason is that "you are owed $7,368" is almost useless on its own. Money
+ * that is four days late and money that is four months late are different
+ * problems: the first is an admin oversight, the second is a bad debt forming.
+ * The buckets are how you tell them apart at a glance, and they are what turns
+ * a list into a decision about who to call first.
+ *
+ * The boundaries are the conventional ones (current, 1-30, 31-60, 61-90, 90+),
+ * so anybody who has run a business recognises the shape without being taught
+ * it. `current` holds everything not yet past its due date, including orders
+ * that are part paid: they are outstanding, but they are not late.
+ *
+ * Derived, never stored. Every number here comes from the same due dates and
+ * payments the rest of the product reads, evaluated against an injected `asOf`,
+ * so the report cannot disagree with the list it sits above and cannot go stale
+ * merely because time passed.
+ */
+export const AGEING_BUCKETS = [
+  { key: "current", label: "Not yet due", from: null, to: 0 },
+  { key: "d1_30", label: "1 to 30 days", from: 1, to: 30 },
+  { key: "d31_60", label: "31 to 60 days", from: 31, to: 60 },
+  { key: "d61_90", label: "61 to 90 days", from: 61, to: 90 },
+  { key: "d90_plus", label: "Over 90 days", from: 91, to: null },
+] as const;
+
+export type AgeingBucketKey = (typeof AGEING_BUCKETS)[number]["key"];
+
+export interface AgeingBucket {
+  key: AgeingBucketKey;
+  label: string;
+  /** Total still owed across the orders in this bucket, in cents. */
+  cents: number;
+  /** How many orders landed here. */
+  count: number;
+}
+
+export interface AgeingReport {
+  buckets: AgeingBucket[];
+  /** Everything still owed, which is the sum of every bucket. */
+  totalCents: number;
+  /** Everything owed that is past its due date, so every bucket but the first. */
+  overdueCents: number;
+}
+
+/**
+ * How many whole days past its due date an order is, as of a given moment.
+ *
+ * Negative or zero means it is not late yet.
+ *
+ * TAKES THE CALENDAR KEY, NOT A `Date`. `YYYY-MM-DD` is the canonical form of a
+ * due date in this system: it is what the column stores, what the DTO carries
+ * and what the API returns. Accepting a `Date` here would mean every caller
+ * choosing a timezone to convert through, and the whole point of the key is
+ * that there is nothing left to choose. Anyone holding a `Date` calls
+ * `toUtcDateKey` first, which is one function with one answer.
+ *
+ * Both sides are reduced the same way `deriveOrderStatus` does, so an order can
+ * never be reported as one day overdue here while reading as pending in the row
+ * beside it.
+ */
+export function daysOverdue(dueDateKey: string, asOf: Date): number {
+  const due = Date.parse(`${dueDateKey}T00:00:00.000Z`);
+  const today = Date.parse(`${toUtcDateKey(asOf)}T00:00:00.000Z`);
+
+  return Math.round((today - due) / 86_400_000);
+}
+
+function bucketFor(days: number): AgeingBucketKey {
+  if (days <= 0) return "current";
+  if (days <= 30) return "d1_30";
+  if (days <= 60) return "d31_60";
+  if (days <= 90) return "d61_90";
+  return "d90_plus";
+}
+
+/**
+ * Buckets every unsettled order by how late it is.
+ *
+ * Settled orders are excluded rather than bucketed at zero. An ageing report
+ * answers "what is still out there", and an order that has been paid is not out
+ * there: including it would inflate every count with rows that need no action.
+ */
+export function buildAgeingReport(
+  orders: readonly {
+    dueCents: number;
+    /** The calendar key, `YYYY-MM-DD`, exactly as the DTO carries it. */
+    dueDate: string;
+    status: OrderStatus;
+  }[],
+  asOf: Date,
+): AgeingReport {
+  const totals = new Map<AgeingBucketKey, { cents: number; count: number }>(
+    AGEING_BUCKETS.map((bucket) => [bucket.key, { cents: 0, count: 0 }]),
+  );
+
+  for (const order of orders) {
+    if (order.status === "paid" || order.dueCents <= 0) continue;
+
+    const slot = totals.get(bucketFor(daysOverdue(order.dueDate, asOf)))!;
+    slot.cents += order.dueCents;
+    slot.count += 1;
+  }
+
+  const buckets = AGEING_BUCKETS.map((bucket) => ({
+    key: bucket.key,
+    label: bucket.label,
+    ...totals.get(bucket.key)!,
+  }));
+
+  return {
+    buckets,
+    totalCents: sumCents(buckets.map((bucket) => bucket.cents)),
+    overdueCents: sumCents(
+      buckets.filter((b) => b.key !== "current").map((bucket) => bucket.cents),
+    ),
+  };
+}
