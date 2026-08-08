@@ -335,8 +335,20 @@ export async function deleteOrder(
       throw orderLocked();
     }
 
-    // Line items cascade via the schema's onDelete rule.
-    await tx.order.delete({ where: { id: orderId } });
+    try {
+      // Line items cascade via the schema's onDelete rule.
+      await tx.order.delete({ where: { id: orderId } });
+    } catch (error) {
+      /**
+       * Two DELETEs for the same order: the loser's row lock is released by a
+       * commit that removed the row, so its own delete raises P2025. That is a
+       * 404 (it is gone), not a 500 (nothing is broken).
+       */
+      if (isMissingRecord(error)) {
+        throw notFound("order");
+      }
+      throw error;
+    }
   });
 }
 
@@ -344,5 +356,13 @@ function isUniqueViolation(error: unknown): boolean {
   return (
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2002"
+  );
+}
+
+/** P2025: the row a write targeted was not there. */
+function isMissingRecord(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
   );
 }
