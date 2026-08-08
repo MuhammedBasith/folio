@@ -15,7 +15,7 @@ export default async function NewOrderPage() {
     <main className="mx-auto w-full max-w-detail px-5 py-8 md:px-8 md:py-10">
       <Link
         href="/orders"
-        className="inline-flex items-center gap-1.5 text-caption text-ink-faint transition-colors duration-160 hover:text-ink"
+        className="-ml-1 inline-flex min-h-6 items-center gap-1.5 rounded-sm px-1 py-0.5 text-caption text-ink-faint transition-colors duration-160 hover:text-ink"
       >
         <ArrowLeft aria-hidden className="size-3" />
         Orders
