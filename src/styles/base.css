@@ -59,6 +59,29 @@
   }
 
   /**
+   * Smooth scrolling, ON THE LANDING PAGE ONLY.
+   *
+   * The header and the footer both carry anchors into the three sections, and
+   * an anchor that teleports costs the reader their place: the page they were
+   * looking at is replaced by a different page, and nothing connects the two.
+   * Scrolling there instead is the bridge, and it is the one thing on this page
+   * that genuinely could not be done with a transition on an element.
+   *
+   * SCOPED, AND THE SCOPE IS THE WHOLE POINT. Declared on `html` globally this
+   * also governs the scroll-to-top the App Router performs on every navigation,
+   * so leaving any long page would animate the full document height before the
+   * next route appeared. `:has()` limits it to the one page that has anchors,
+   * and the attribute is gone the moment you navigate away, so route changes
+   * keep their instant jump. Same mechanism as the ground colour above.
+   *
+   * Reduced motion is already covered: the block at the foot of this file
+   * forces `scroll-behavior: auto` on every element, `html` included.
+   */
+  html:has([data-page="landing"]) {
+    scroll-behavior: smooth;
+  }
+
+  /**
    * Site-wide film grain.
    *
    * A fixed pseudo-element rather than a DOM node, so no component has to know
@@ -229,6 +252,36 @@
 }
 
 /**
+ * A row inside a revealed card, arriving after the card it sits in.
+ *
+ * For the two sections that argue in a sequence: the precedence list, which is
+ * only meaningful read top to bottom, and the receipt, whose rows are an
+ * arithmetic that ends in a punchline. Bringing those in one at a time is
+ * EXPLANATION rather than decoration; the order is the content, and a card that
+ * fades in whole says nothing about it.
+ *
+ * `rise-in`, NOT `blur-rise`. The editorial entrance travels 14px behind a 10px
+ * blur over 900ms, which is right for a headline arriving alone and wrong for
+ * six rows in a column: the blur makes figures briefly unreadable and the
+ * distance turns a list into a wave. Six pixels and no blur is felt rather than
+ * watched, which is the requirement for anything carrying money.
+ *
+ * 55ms apart, so the last of six rows starts 275ms after the first and the
+ * whole sequence lands inside the parent's own reveal rather than trailing out
+ * behind it. There is no delay of its own: the ancestor only flips
+ * `data-visible` once it is on screen, and the card's fade is already the
+ * stagger's head start.
+ */
+@utility reveal-item {
+  opacity: 0;
+
+  [data-visible="true"] & {
+    animation: rise-in var(--duration-slow) var(--ease-out-quint) forwards;
+    animation-delay: calc(var(--stagger-index, 0) * 55ms);
+  }
+}
+
+/**
  * Animated theme change.
  *
  * The provider stamps `data-theme-vt` on <html> only while a toggle is in
@@ -277,8 +330,11 @@ html[data-theme-vt]::view-transition-group(root) {
   }
 
   /* The scroll reveal hides its element until the animation runs, so the
-     animation cannot simply be cancelled or the content never appears. */
-  .reveal {
+     animation cannot simply be cancelled or the content never appears. The
+     staggered rows inside one are hidden by the same trick and need the same
+     floor. */
+  .reveal,
+  .reveal-item {
     opacity: 1;
   }
 }
