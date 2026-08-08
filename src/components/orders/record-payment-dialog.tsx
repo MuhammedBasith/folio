@@ -11,6 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { BusyLabel } from "@/components/ui/busy-label";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ApiClientError, api } from "@/lib/api-client";
 import { formatCents, formatMoney, parseAmountToCents } from "@/lib/money";
@@ -23,6 +25,12 @@ import { todayLocalIso } from "@/lib/format";
  * the maximum is stated, and one tap fills the field with the exact remaining
  * balance. Most payments settle an invoice in full, so the common case is a
  * single click.
+ *
+ * NOTHING IS RENDERED WHEN THE ORDER IS SETTLED. There used to be a disabled
+ * button reading "Fully paid", which is not a control at all: it looks like an
+ * action, cannot be used, and repeats what the status beside it already says.
+ * A dead button is worse than no button, because the user has to work out why
+ * it will not respond.
  *
  * When the server rejects an over-payment it returns `details.maxAllowedCents`,
  * and that number is written straight back into the hint. So if the balance
@@ -49,6 +57,8 @@ export function RecordPaymentDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const busy = submitting || isPending;
+
+  if (dueCents === 0) return null;
 
   /**
    * Reset on OPEN, not on close.
@@ -132,13 +142,11 @@ export function RecordPaymentDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button disabled={dueCents === 0}>
-          {dueCents === 0 ? "Fully paid" : "Record payment"}
-        </Button>
+        <Button size="sm">Record payment</Button>
       </DialogTrigger>
 
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="gap-1">
           <DialogTitle className="font-heading text-display-sm text-ink">
             Record a payment
           </DialogTitle>
@@ -148,23 +156,28 @@ export function RecordPaymentDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} noValidate className="space-y-4">
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-baseline justify-between gap-3">
               <label
                 htmlFor="amount"
-                className="text-body-sm font-medium text-ink"
+                className="text-caption font-medium text-ink-muted"
               >
                 Amount
               </label>
+              {/*
+                A chip, not an underlined link. The old treatment made the most
+                common action on this screen look like a footnote, and links
+                inside a form imply navigation away from it.
+              */}
               <button
                 type="button"
                 onClick={() => {
                   setAmount(formatCents(maxCents));
                   setError(null);
                 }}
-                className="text-caption text-ink-muted underline decoration-line underline-offset-4 transition-colors hover:text-ink"
+                className="pressable rounded-full border border-line bg-surface-sunken/60 px-2 py-0.5 text-caption text-ink-muted transition-colors duration-160 ease-out-quint hover:border-line-strong/25 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-(--focus-ring)"
               >
-                Pay the full {formatMoney(maxCents)}
+                Pay in full
               </button>
             </div>
             <Input
@@ -195,22 +208,25 @@ export function RecordPaymentDialog({
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="paidOn" className="text-body-sm font-medium text-ink">
+          <div className="space-y-2">
+            <label
+              htmlFor="paidOn"
+              className="block text-caption font-medium text-ink-muted"
+            >
               Date received
             </label>
-            <Input
-              id="paidOn"
-              type="date"
-              value={paidOn}
-              onChange={(event) => setPaidOn(event.target.value)}
-            />
+            <DateField id="paidOn" value={paidOn} onChange={setPaidOn} />
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="note" className="text-body-sm font-medium text-ink">
+          <div className="space-y-2">
+            <label
+              htmlFor="note"
+              className="block text-caption font-medium text-ink-muted"
+            >
               Note
-              <span className="ml-1.5 font-normal text-ink-faint">optional</span>
+              <span className="ml-1.5 font-normal text-ink-disabled">
+                optional
+              </span>
             </label>
             <Input
               id="note"
@@ -220,17 +236,18 @@ export function RecordPaymentDialog({
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-1">
+          <div className="flex items-center justify-end gap-2 border-t border-line-subtle pt-4">
             <Button
               type="button"
               variant="ghost"
+              size="sm"
               onClick={() => handleOpenChange(false)}
               disabled={busy}
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={busy}>
-              {busy ? "Recording" : "Record payment"}
+            <Button type="submit" size="sm" disabled={busy}>
+              <BusyLabel busy={busy} idle="Record payment" pending="Recording" />
             </Button>
           </div>
         </form>
