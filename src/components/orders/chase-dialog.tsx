@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import {
   Dialog,
@@ -78,6 +78,7 @@ export function ChaseDialog({
   const [subject, setSubject] = useState("");
   const [tone, setTone] = useState<ChaseMessage["tone"]>("reminder");
   const [copied, setCopied] = useState(false);
+  const copyRef = useRef<HTMLButtonElement>(null);
 
   if (dueCents <= 0 || status === "paid") return null;
 
@@ -133,7 +134,18 @@ export function ChaseDialog({
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        // Radix focuses the first tabbable element, which is the subject
+        // field, and the browser selects its contents. One keystroke would
+        // then wipe a subject the user probably wanted to keep. The copy
+        // button is both the safest landing place and the one the common
+        // flow ends on.
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          copyRef.current?.focus();
+        }}
+      >
         <DialogHeader className="gap-1">
           <div className="flex items-center gap-2.5">
             <DialogTitle className="font-heading text-display-sm text-ink">
@@ -180,7 +192,10 @@ export function ChaseDialog({
             id="chase-body"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            className="max-h-72 min-h-56 leading-relaxed"
+            // `resize-none` because the field already grows with its content
+            // and `max-h` caps it: leaving the handle on would offer a drag
+            // that stops working halfway.
+            className="max-h-72 min-h-56 resize-none leading-relaxed"
           />
         </div>
 
@@ -197,7 +212,7 @@ export function ChaseDialog({
             >
               Close
             </Button>
-            <Button type="button" size="sm" onClick={copy}>
+            <Button ref={copyRef} type="button" size="sm" onClick={copy}>
               {copied ? (
                 <Check aria-hidden className="size-3.5" />
               ) : (
