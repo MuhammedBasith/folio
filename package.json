@@ -15,6 +15,7 @@
     "smoke": "bun scripts/smoke.mjs",
     "brand": "bun scripts/brand-assets.mjs",
     "shoot": "bun scripts/shoot.mjs",
+    "responsive": "bun scripts/responsive.mjs",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:generate": "prisma generate",
