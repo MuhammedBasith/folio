@@ -11,7 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { BusyLabel } from "@/components/ui/busy-label";
+import { StableLabel } from "@/components/ui/stable-label";
 import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
 import { ApiClientError, api } from "@/lib/api-client";
@@ -247,7 +247,10 @@ export function RecordPaymentDialog({
               Cancel
             </Button>
             <Button type="submit" size="sm" disabled={busy}>
-              <BusyLabel busy={busy} idle="Record payment" pending="Recording" />
+              <StableLabel
+                options={["Record payment", "Recording"]}
+                active={busy ? "Recording" : "Record payment"}
+              />
             </Button>
           </div>
         </form>
