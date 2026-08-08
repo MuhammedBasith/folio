@@ -81,3 +81,36 @@ export function describeDueDate(isoDate: string, asOf: Date = new Date()): strin
 export function pluralise(count: number, singular: string, plural?: string) {
   return count === 1 ? singular : (plural ?? `${singular}s`);
 }
+
+/**
+ * Today's date in the viewer's own timezone, as "YYYY-MM-DD".
+ *
+ * Used for date-input defaults and minimums, and deliberately NOT UTC. A user
+ * in Los Angeles at 5pm is already on the next UTC day, so a UTC default would
+ * pre-fill "date received" with tomorrow and a UTC minimum would refuse the due
+ * date they are actually looking at on their calendar.
+ *
+ * This is the one place local time is correct. Comparison and status derivation
+ * stay in UTC (see `toUtcDateKey`), because those must agree with the server;
+ * this only picks a sensible starting value for a field the user can change.
+ */
+export function todayLocalIso(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+/** A local calendar date `days` from today, as "YYYY-MM-DD". */
+export function localIsoInDays(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
