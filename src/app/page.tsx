@@ -76,8 +76,10 @@ export default async function LandingPage() {
               <p className="text-label uppercase text-ink-faint">
                 Outstanding
               </p>
+              {/* Sums the five rows below exactly. A preview whose total does
+                  not add up is the first thing a careful reader notices. */}
               <p data-numeric className="mt-1 text-metric-lg text-ink">
-                $7,368.01
+                $7,368.00
               </p>
             </div>
 
