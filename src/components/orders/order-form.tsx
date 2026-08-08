@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BusyLabel } from "@/components/ui/busy-label";
+import { DateField } from "@/components/ui/date-field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ApiClientError, api } from "@/lib/api-client";
 import { formatMoney, parseAmountToCents } from "@/lib/money";
 import { localIsoInDays, todayLocalIso } from "@/lib/format";
@@ -13,11 +16,19 @@ import { cn } from "@/lib/utils";
 /**
  * Order editor.
  *
- * LINE ITEMS ARE A GRID, NOT A LIST OF CARDS. The earlier version wrapped every
+ * LINE ITEMS ARE A GRID, NOT A LIST OF CARDS. An earlier version wrapped every
  * line in its own bordered box inside a bordered section inside a bordered
  * page: three nested frames to hold three inputs. Lines here share one header
  * row and sit on hairline rules, so the columns align down the page and the
  * form reads as the document it is producing.
+ *
+ * ERRORS BELONG TO THE ROW THAT CAUSED THEM. This used to collect every line
+ * error into one flat list under the table, so submitting three empty lines
+ * printed "Describe this line. Enter an amount." three times over with nothing
+ * to say which line each pair belonged to. It read as a bug because it behaved
+ * as one: the same sentence repeated is indistinguishable from a rendering
+ * fault. Each row now carries its own message, deduplicated, directly beneath
+ * it, and the offending cells are marked.
  *
  * Amounts are typed as text and parsed with the shared money parser, never with
  * `parseFloat`. Everything sent to the API is integer cents, so the value the
@@ -48,7 +59,7 @@ function emptyLine(): DraftLine {
 /**
  * Defaults come from the user's own calendar, not UTC. A UTC minimum blocks the
  * user's local today for anyone west of Greenwich in the evening: their
- * calendar says the 8th, the input refuses anything before the 9th.
+ * calendar says the 8th, the field refuses anything before the 9th.
  */
 const defaultDueDate = () => localIsoInDays(14);
 
@@ -114,6 +125,7 @@ export function OrderForm() {
   function addLine() {
     setLines((current) => [...current, emptyLine()]);
     clearLineErrors();
+    setFormError(null);
   }
 
   function removeLine(key: string) {
@@ -121,6 +133,7 @@ export function OrderForm() {
       current.length === 1 ? current : current.filter((l) => l.key !== key),
     );
     clearLineErrors();
+    setFormError(null);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -142,11 +155,11 @@ export function OrderForm() {
       const quantity = Number(line.quantity);
 
       if (line.description.trim().length === 0) {
-        nextErrors[`lines.${index}.description`] = "Describe this line.";
+        nextErrors[`lines.${index}.description`] = "Describe what was supplied.";
       }
 
       if (!Number.isSafeInteger(quantity) || quantity < 1) {
-        nextErrors[`lines.${index}.quantity`] = "At least 1.";
+        nextErrors[`lines.${index}.quantity`] = "Quantity must be 1 or more.";
       }
 
       if (!price.ok) {
@@ -162,7 +175,13 @@ export function OrderForm() {
 
     setErrors(nextErrors);
 
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      // One announcement for the whole form. Without it a screen reader user
+      // gets nothing at all on submit, because the per-row messages are static
+      // text that appears rather than anything focus ever reaches.
+      setFormError("Some details are missing. Check the fields marked in red.");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -195,16 +214,10 @@ export function OrderForm() {
     }
   }
 
-  const lineErrors = lines.flatMap((_, index) =>
-    ["description", "quantity", "unitPrice"]
-      .map((field) => errors[`lines.${index}.${field}`])
-      .filter(Boolean),
-  );
-
   return (
     <form onSubmit={handleSubmit} noValidate>
       {/* ---- Who and when ---- */}
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem]">
         <Field label="Customer" name="customer" error={errors.customer}>
           <Input
             id="customer"
@@ -217,13 +230,13 @@ export function OrderForm() {
         </Field>
 
         <Field label="Due date" name="dueDate" error={errors.dueDate}>
-          <Input
+          <DateField
             id="dueDate"
-            type="date"
             value={dueDate}
+            onChange={setDueDate}
             min={todayLocalIso()}
-            onChange={(e) => setDueDate(e.target.value)}
-            aria-invalid={errors.dueDate ? true : undefined}
+            invalid={Boolean(errors.dueDate)}
+            describedBy={errors.dueDate ? "dueDate-error" : undefined}
           />
         </Field>
       </div>
@@ -231,13 +244,13 @@ export function OrderForm() {
       {/* ---- Lines ---- */}
       <div className="mt-8">
         <div className="flex items-baseline justify-between gap-4">
-          <h2 className="text-label text-ink-faint">Line items</h2>
+          <h2 className="text-caption font-medium text-ink-muted">Line items</h2>
           <span data-numeric className="text-caption text-ink-faint">
             {lines.length} {lines.length === 1 ? "line" : "lines"}
           </span>
         </div>
 
-        <div className="mt-2 overflow-hidden rounded-lg border border-line bg-surface-raised">
+        <div className="mt-2 overflow-hidden rounded-xl border border-line bg-surface-raised">
           {/*
             Column headers, hidden on phones where the grid stacks.
 
@@ -246,17 +259,15 @@ export function OrderForm() {
             every heading is six pixels left of its column and the grid reads as
             slightly broken without it being obvious why.
           */}
-          <div className="hidden border-b border-line-subtle bg-surface-sunken/60 px-3 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:gap-3">
-            <span className="px-1.5 text-label text-ink-faint">
+          <div className="hidden border-b border-line-subtle bg-surface-sunken/45 px-3 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:gap-3">
+            <span className="px-1.5 text-caption text-ink-faint">
               Description
             </span>
-            <span className="px-1.5 text-label text-ink-faint">
-              Qty
-            </span>
-            <span className="px-1.5 text-label text-ink-faint">
+            <span className="px-1.5 text-caption text-ink-faint">Qty</span>
+            <span className="px-1.5 text-caption text-ink-faint">
               Unit price
             </span>
-            <span className="text-right text-label text-ink-faint">
+            <span className="text-right text-caption text-ink-faint">
               Amount
             </span>
             <span className="sr-only">Remove</span>
@@ -271,83 +282,100 @@ export function OrderForm() {
                   ? price.cents * quantity
                   : null;
 
-              const hasError =
-                errors[`lines.${index}.description`] ??
-                errors[`lines.${index}.quantity`] ??
-                errors[`lines.${index}.unitPrice`];
+              /**
+               * One message per row, deduplicated.
+               *
+               * The `Set` matters: two cells can fail with identical wording,
+               * and a sentence printed twice in the same place is exactly what
+               * made the old flat list look broken.
+               */
+              const rowErrors = [
+                errors[`lines.${index}.description`],
+                errors[`lines.${index}.quantity`],
+                errors[`lines.${index}.unitPrice`],
+              ].filter(Boolean) as string[];
+
+              const message = [...new Set(rowErrors)].join(" ");
 
               return (
                 <li
                   key={line.key}
                   className={cn(
                     "border-b border-line-subtle px-3 py-2 last:border-b-0",
-                    "sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:items-center sm:gap-3",
-                    hasError && "bg-feedback-error-tint/40",
+                    message && "bg-feedback-error-tint/30",
                   )}
                 >
-                  <BareInput
-                    aria-label={`Line ${index + 1} description`}
-                    value={line.description}
-                    onChange={(e) =>
-                      updateLine(line.key, { description: e.target.value })
-                    }
-                    placeholder="What was supplied"
-                    invalid={Boolean(errors[`lines.${index}.description`])}
-                  />
-
-                  <div className="mt-2 grid grid-cols-[4.5rem_1fr_auto] items-center gap-3 sm:mt-0 sm:contents">
+                  <div className="sm:grid sm:grid-cols-[minmax(0,1fr)_4.5rem_7rem_6.5rem_1.75rem] sm:items-center sm:gap-3">
                     <BareInput
-                      aria-label={`Line ${index + 1} quantity`}
-                      inputMode="numeric"
-                      value={line.quantity}
+                      aria-label={`Line ${index + 1} description`}
+                      value={line.description}
                       onChange={(e) =>
-                        updateLine(line.key, { quantity: e.target.value })
+                        updateLine(line.key, { description: e.target.value })
                       }
-                      className="tabular-nums"
-                      invalid={Boolean(errors[`lines.${index}.quantity`])}
+                      placeholder="What was supplied"
+                      invalid={Boolean(errors[`lines.${index}.description`])}
                     />
 
-                    <BareInput
-                      aria-label={`Line ${index + 1} unit price`}
-                      inputMode="decimal"
-                      value={line.unitPrice}
-                      onChange={(e) =>
-                        updateLine(line.key, { unitPrice: e.target.value })
-                      }
-                      placeholder="0.00"
-                      className="tabular-nums"
-                      invalid={Boolean(errors[`lines.${index}.unitPrice`])}
-                    />
+                    <div className="mt-2 grid grid-cols-[4.5rem_1fr_auto] items-center gap-3 sm:mt-0 sm:contents">
+                      <BareInput
+                        aria-label={`Line ${index + 1} quantity`}
+                        inputMode="numeric"
+                        value={line.quantity}
+                        onChange={(e) =>
+                          updateLine(line.key, { quantity: e.target.value })
+                        }
+                        className="tabular-nums"
+                        invalid={Boolean(errors[`lines.${index}.quantity`])}
+                      />
 
-                    <span
-                      data-numeric
-                      className="text-right text-body-sm text-ink-muted sm:tabular-nums"
-                    >
-                      {lineTotal === null ? "" : formatMoney(lineTotal)}
-                    </span>
+                      <BareInput
+                        aria-label={`Line ${index + 1} unit price`}
+                        inputMode="decimal"
+                        value={line.unitPrice}
+                        onChange={(e) =>
+                          updateLine(line.key, { unitPrice: e.target.value })
+                        }
+                        placeholder="0.00"
+                        className="tabular-nums"
+                        invalid={Boolean(errors[`lines.${index}.unitPrice`])}
+                      />
 
-                    <button
-                      type="button"
-                      onClick={() => removeLine(line.key)}
-                      disabled={lines.length === 1}
-                      aria-label={`Remove line ${index + 1}`}
-                      className={cn(
-                        "pressable grid size-7 place-items-center rounded-sm text-ink-faint",
-                        "transition-colors duration-160 ease-out-quint",
-                        "hover:bg-action-ghost-hover hover:text-ink",
-                        "disabled:pointer-events-none disabled:opacity-30",
-                        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)",
-                      )}
-                    >
-                      <X aria-hidden className="size-3.5" />
-                    </button>
+                      <span
+                        data-numeric
+                        className="text-right text-body-sm text-ink-muted sm:tabular-nums"
+                      >
+                        {lineTotal === null ? "" : formatMoney(lineTotal)}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => removeLine(line.key)}
+                        disabled={lines.length === 1}
+                        aria-label={`Remove line ${index + 1}`}
+                        className={cn(
+                          "pressable grid size-7 place-items-center rounded-sm text-ink-faint",
+                          "transition-colors duration-160 ease-out-quint",
+                          "hover:bg-action-ghost-hover hover:text-ink",
+                          "disabled:pointer-events-none disabled:opacity-30",
+                          "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-(--focus-ring)",
+                        )}
+                      >
+                        <X aria-hidden className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
+
+                  {message ? (
+                    <p className="mt-1 px-1.5 text-caption text-feedback-error-ink">
+                      {message}
+                    </p>
+                  ) : null}
                 </li>
               );
             })}
           </ul>
 
-          <div className="flex items-center justify-between gap-4 border-t border-line-subtle bg-surface-sunken/40 px-3 py-2">
+          <div className="flex items-center justify-between gap-4 border-t border-line-subtle bg-surface-sunken/35 px-3 py-2">
             <button
               type="button"
               onClick={addLine}
@@ -363,7 +391,7 @@ export function OrderForm() {
             </button>
 
             <div className="flex items-baseline gap-3">
-              <span className="text-label text-ink-faint">Total</span>
+              <span className="text-caption text-ink-faint">Total</span>
               <span data-numeric className="text-metric text-ink">
                 {formatMoney(previewTotalCents)}
               </span>
@@ -371,31 +399,22 @@ export function OrderForm() {
           </div>
         </div>
 
-        {lineErrors.length > 0 ? (
-          <ul className="mt-2 space-y-0.5">
-            {lineErrors.map((message, i) => (
-              <li key={i} role="alert" className="text-caption text-feedback-error-ink">
-                {message}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-2 text-caption text-ink-faint">
-            The total is recalculated on the server from these lines. It is never
-            taken from the browser.
-          </p>
-        )}
+        <p className="mt-2 text-caption text-ink-faint">
+          The total is recalculated on the server from these lines. It is never
+          taken from the browser.
+        </p>
       </div>
 
       {/* ---- Notes ---- */}
       <div className="mt-8">
         <Field label="Notes" name="notes" optional error={errors.notes}>
-          <Input
+          <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Anything worth remembering about this order"
             maxLength={1000}
+            rows={2}
             aria-invalid={errors.notes ? true : undefined}
           />
         </Field>
@@ -404,7 +423,7 @@ export function OrderForm() {
       {formError ? (
         <p
           role="alert"
-          className="mt-6 rounded-md border border-feedback-error-line bg-feedback-error-tint px-3 py-2 text-caption text-feedback-error-ink"
+          className="mt-6 rounded-md border border-feedback-error-line bg-feedback-error-tint px-3 py-2.5 text-caption text-feedback-error-ink"
         >
           {formError}
         </p>
@@ -412,7 +431,7 @@ export function OrderForm() {
 
       <div className="mt-8 flex items-center gap-2 border-t border-line-subtle pt-5">
         <Button type="submit" disabled={busy}>
-          {busy ? "Creating" : "Create order"}
+          <BusyLabel busy={busy} idle="Create order" pending="Creating" />
         </Button>
         <Button
           type="button"
@@ -430,10 +449,10 @@ export function OrderForm() {
 /**
  * A borderless input for use inside the line grid.
  *
- * A bordered box per cell would draw 15 rectangles across five rows and fight
- * the table rules already separating them. The affordance comes from the hover
- * and focus states instead, which is enough once the header row has established
- * that these are fields.
+ * A bordered box per cell would draw fifteen rectangles across five rows and
+ * fight the table rules already separating them. The affordance comes from the
+ * hover and focus states instead, which is enough once the header row has
+ * established that these are fields.
  */
 function BareInput({
   className,
@@ -451,7 +470,11 @@ function BareInput({
         "hover:bg-surface-sunken/70",
         "focus:bg-surface-sunken focus:outline-none",
         "focus-visible:outline-2 focus-visible:-outline-offset-1 focus-visible:outline-(--focus-ring)",
-        invalid && "text-feedback-error-ink",
+        // A red underline on the exact cell, so the row message says WHAT is
+        // wrong and the cell says WHERE. Colouring the text alone does nothing
+        // for an empty field, which is the case that actually fails.
+        invalid &&
+          "text-feedback-error-ink shadow-[inset_0_-1px_0_0_var(--feedback-error-line)]",
         className,
       )}
     />
@@ -472,21 +495,23 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <label
         htmlFor={name}
-        className="block text-label text-ink-faint"
+        className="block text-caption font-medium text-ink-muted"
       >
         {label}
         {optional ? (
-          <span className="ml-1.5 tracking-normal text-ink-disabled">
-            optional
-          </span>
+          <span className="ml-1.5 font-normal text-ink-disabled">optional</span>
         ) : null}
       </label>
       {children}
       {error ? (
-        <p role="alert" className="text-caption text-feedback-error-ink">
+        <p
+          id={`${name}-error`}
+          role="alert"
+          className="text-caption text-feedback-error-ink"
+        >
           {error}
         </p>
       ) : null}
