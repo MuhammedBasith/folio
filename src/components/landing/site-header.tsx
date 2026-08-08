@@ -74,7 +74,13 @@ export function SiteHeader() {
           "flex w-full items-center gap-4",
           "border transition-[max-width,margin,padding,border-radius,border-color,background-color,box-shadow] duration-500 ease-drawer",
           condensed
-            ? "mt-2.5 max-w-3xl rounded-full border-line bg-surface-canvas/72 px-3 py-1.5 shadow-raised backdrop-blur-xl"
+            ? // Asymmetric on purpose. A fully rounded pill curves away from
+              // its own left edge, so content set at the same padding as the
+              // right looks jammed into the corner; the filled button on the
+              // right meanwhile wants to sit close, because its own shape
+              // already provides the inset. More on the left, less on the right,
+              // and the two ends read as equally spaced.
+              "mt-2.5 max-w-2xl rounded-full border-line bg-surface-canvas/72 py-1.5 pr-1.5 pl-6 shadow-raised backdrop-blur-xl"
             : // The resting bar shares the page gutter (px-5 / md:px-8) so the
               // mark sits on the same vertical line as the content below it.
               // At px-2 it was jammed against the viewport edge while the
@@ -118,14 +124,15 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+        {/*
+          TWO CONTROLS, NOT THREE. "Sign in" and "Open the demo" both went to
+          /login, so the bar was asking the reader to choose between two doors
+          into the same room. The demo is the one worth pressing, the page it
+          opens is the sign in page, and the footer still carries a plain link
+          for anyone who already has an account.
+        */}
+        <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          <Link
-            href="/login"
-            className="hidden rounded-full px-2.5 py-1.5 text-body-sm text-ink-muted transition-colors duration-160 hover:text-ink sm:inline-block"
-          >
-            Sign in
-          </Link>
           <Button asChild size="sm" className="rounded-full px-4">
             <Link href="/login">Open the demo</Link>
           </Button>
