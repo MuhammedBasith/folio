@@ -139,8 +139,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           href="/"
           className="inline-flex min-h-8 w-full max-w-md items-center gap-2.5 text-ink transition-opacity duration-160 hover:opacity-65"
         >
-          <Mark className="size-4" />
-          <span className="font-heading text-[1.0625rem] leading-none tracking-[-0.02em]">
+          {/*
+            Sized like the landing wordmark, not like the one inside the
+            product. This is the only piece of brand on the page, and it was set
+            at 17px, the size it takes in the app header where it competes with
+            an account control and a row of actions. Here it has the column to
+            itself.
+          */}
+          <Mark className="size-5" />
+          <span className="font-heading text-[1.375rem] leading-none tracking-[-0.026em]">
             Folio
           </span>
         </Link>
