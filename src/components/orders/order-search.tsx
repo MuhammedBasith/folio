@@ -69,7 +69,10 @@ export function OrderSearch() {
     <div
       data-pending={isPending || undefined}
       className={cn(
-        "group relative flex h-8 items-center rounded-md border border-line bg-surface-sunken/45",
+        // Full width on a phone, where the toolbar wraps and this gets its own
+        // line anyway. A 160px field sitting alone on a 390px row is not
+        // restraint, it is a field that could not fit its own placeholder.
+        "group relative flex h-8 w-full items-center rounded-md border border-line bg-surface-sunken/45 sm:w-auto",
         "transition-[border-color,box-shadow,background-color,opacity] duration-160 ease-out-quint",
         "focus-within:border-line-strong/45 focus-within:bg-surface focus-within:ring-2 focus-within:ring-(--focus-ring)/12",
         "data-pending:opacity-70",
@@ -102,7 +105,7 @@ export function OrderSearch() {
         placeholder="Search orders"
         aria-label="Search orders by customer name or reference"
         className={cn(
-          "h-full w-40 rounded-md bg-transparent pr-7 pl-8 sm:w-56",
+          "h-full w-full rounded-md bg-transparent pr-7 pl-8 sm:w-56",
           // 16px on phones so iOS Safari does not zoom the viewport on focus
           // and then refuse to zoom back out.
           "text-base sm:text-caption text-ink placeholder:text-ink-disabled",
