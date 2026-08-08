@@ -147,6 +147,17 @@ export default function TokensPage() {
             <Specimen label="text-caption · the label size, sentence case">
               <p className="text-caption text-ink-faint">Amount due</p>
             </Specimen>
+            <Specimen label="tabular-nums · what replaced the mono face">
+              <div className="space-y-0.5 tabular-nums">
+                <p className="text-body-sm text-ink">ORD-0001 · 4,556.00</p>
+                <p className="text-body-sm text-ink">ORD-1111 · 1,111.11</p>
+                <p className="mt-2 text-caption text-ink-faint">
+                  Two families only. Inter carries references and figures with
+                  tabular numerals, which is the one thing the monospace face
+                  was actually providing.
+                </p>
+              </div>
+            </Specimen>
             <Specimen label="text-metric-lg · tabular figures">
               <div className="space-y-1">
                 <p data-numeric className="text-metric-lg text-ink">
@@ -167,9 +178,9 @@ export default function TokensPage() {
         <Section
           eyebrow="Colour"
           title="Ink, surface, line"
-          note="Elevation is tint plus a hairline, not shadow. Surfaces get fractionally darker as they recede in light mode and fractionally lighter in dark, because light travels up: an inversion that copies the light values exactly is the fastest way to make a dark theme look wrong without anyone being able to say why."
+          note="Elevation is tint plus a hairline, not shadow. Surfaces get fractionally darker as they recede in light mode and fractionally lighter in dark, because light travels up: an inversion that copies the light values exactly is the fastest way to make a dark theme look wrong without anyone being able to say why. `surface-inset` is the one that reverses direction on purpose, so a table header reads as a band on its panel rather than a hole punched in it."
         >
-          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-7">
             <Swatch name="bg-surface" className="bg-surface" bordered />
             <Swatch
               name="bg-surface-raised"
@@ -179,6 +190,11 @@ export default function TokensPage() {
             <Swatch
               name="bg-surface-sunken"
               className="bg-surface-sunken"
+              bordered
+            />
+            <Swatch
+              name="bg-surface-inset"
+              className="bg-surface-inset"
               bordered
             />
             <Swatch
