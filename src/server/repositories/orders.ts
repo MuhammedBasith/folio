@@ -152,6 +152,48 @@ export async function getOrder(
   return toOrderDto(order, asOf);
 }
 
+/**
+ * Resolves an order by whichever identifier the caller happens to hold.
+ *
+ * WRITTEN FOR AGENTS, and it is the difference between a tool that works and
+ * one that does not. A person reading the dashboard, and therefore a model
+ * reading it on their behalf, knows the order as "ORD-0007"; the cuid exists
+ * only in URLs. Forcing a caller to list every order just to translate a
+ * reference it already has would turn one question into two round trips and
+ * invites the model to guess an id.
+ *
+ * The reference branch is served by the existing `(ownerId, reference)` unique
+ * index, so this is one indexed lookup either way, never a scan.
+ *
+ * Both branches are scoped by owner and both report 404, so this adds a way to
+ * ADDRESS an order and no way to reach one that is not yours.
+ */
+export async function getOrderByIdOrReference(
+  ownerId: string,
+  identifier: string,
+  asOf: Date = new Date(),
+): Promise<OrderDto> {
+  const order = await prisma.order.findFirst({
+    where: {
+      ownerId,
+      // Case-insensitive on the reference alone: "ord-0007" is obviously the
+      // same order to a human, and a model will produce either casing. Ids stay
+      // exact, because they are opaque and never typed by hand.
+      OR: [
+        { id: identifier },
+        { reference: { equals: identifier, mode: "insensitive" } },
+      ],
+    },
+    include: ORDER_INCLUDE,
+  });
+
+  if (!order) {
+    throw notFound("order");
+  }
+
+  return toOrderDto(order, asOf);
+}
+
 /* ------------------------------------------------------------------ */
 /* Writes                                                              */
 /* ------------------------------------------------------------------ */
