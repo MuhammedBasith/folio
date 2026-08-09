@@ -89,6 +89,27 @@ export const RULES = {
    * to police anyone's usage of their own ledger.
    */
   write: { limit: 120, windowMs: 60_000 },
+  /**
+   * Reads made with an API key.
+   *
+   * Browser reads are still unlimited, because throttling the dashboard would
+   * punish somebody for pressing refresh. Machine reads are different: an agent
+   * answering "who owes me money" may call this endpoint in a loop, and a loop
+   * with a bug in it does not get tired. Ten a second is far past anything a
+   * sane integration needs and far below anything that troubles the database.
+   */
+  apiKeyRead: { limit: 600, windowMs: 60_000 },
+  /**
+   * Password-backed actions taken from inside an authenticated session, which
+   * today means minting an API key.
+   *
+   * Tight, because this endpoint takes a password and therefore is a password
+   * oracle if it is not counted. The existing `login` limit does not cover it:
+   * that one is keyed by address, and this is keyed by account, so an attacker
+   * who has stolen a session cannot spend somebody else's budget or hide inside
+   * an office's shared IP.
+   */
+  sensitive: { limit: 10, windowMs: 15 * 60_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 /**
@@ -116,6 +137,8 @@ export function forRuntime(
 export const LOGIN_LIMIT: RateLimitRule = forRuntime(RULES.login);
 export const SIGNUP_LIMIT: RateLimitRule = forRuntime(RULES.signup);
 export const WRITE_LIMIT: RateLimitRule = forRuntime(RULES.write);
+export const API_KEY_READ_LIMIT: RateLimitRule = forRuntime(RULES.apiKeyRead);
+export const SENSITIVE_LIMIT: RateLimitRule = forRuntime(RULES.sensitive);
 
 export interface RateLimitResult {
   ok: boolean;
