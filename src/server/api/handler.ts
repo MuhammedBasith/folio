@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
-import { ApiError, unauthenticated, validationFailed } from "./errors";
+import type { ApiKeyScope } from "@/generated/prisma/client";
 import {
+  ApiError,
+  insufficientScope,
+  sessionRequired,
+  unauthenticated,
+  validationFailed,
+} from "./errors";
+import {
+  API_KEY_READ_LIMIT,
   WRITE_LIMIT,
   enforce,
   hit,
+  type RateLimitResult,
   type RateLimitRule,
 } from "./rate-limit";
 import {
@@ -13,6 +22,8 @@ import {
   readSessionCookie,
   verifySessionToken,
 } from "@/server/auth/session";
+import { type ApiKeyRejection, looksLikeApiKey } from "@/server/auth/api-key";
+import { authenticateApiKey } from "@/server/repositories/api-keys";
 
 /**
  * Route plumbing.
@@ -106,40 +117,143 @@ export async function parseBody<T>(
 /* ------------------------------------------------------------------ */
 
 /**
- * Resolves the caller, or null.
+ * How the caller proved who they are.
  *
- * Bearer header wins over cookie so an API client can authenticate explicitly
- * regardless of what the browser is carrying, which is what makes the API
- * testable from a terminal.
+ * The distinction matters beyond bookkeeping: a session is a person at a
+ * browser who typed a password within the last seven days, and an API key is a
+ * long-lived secret sitting in a config file on a machine. They are trusted
+ * with different things, which is what `sessionOnly` below is for.
  */
-export async function resolveSession(
-  request: Request,
-): Promise<SessionPayload | null> {
+export type CredentialKind = "session" | "api_key";
+
+/**
+ * The authenticated caller.
+ *
+ * A superset of `SessionPayload`, so every existing route that reads
+ * `session.userId` keeps working untouched while gaining a credential and a
+ * scope it can be judged against.
+ */
+export interface Principal {
+  userId: string;
+  email: string;
+  credential: CredentialKind;
+  /**
+   * What this credential may do.
+   *
+   * A cookie or JWT session is always READ_WRITE: it was obtained with the
+   * account password, so restricting it would restrict nothing that an attacker
+   * holding it could not undo by simply signing in again.
+   */
+  scope: ApiKeyScope;
+  /** The key that authenticated this request, or null for a session. */
+  apiKeyId: string | null;
+}
+
+export type Authentication =
+  | { ok: true; principal: Principal }
+  | { ok: false; reason: "absent" | "invalid" | ApiKeyRejection };
+
+/**
+ * Resolves the caller.
+ *
+ * TRANSPORT PRECEDENCE, unchanged: an `Authorization` header beats the cookie,
+ * so an API client authenticates explicitly regardless of what the browser
+ * happens to be carrying. A header that is present but bad is a failure, not a
+ * reason to fall back to the cookie; silently downgrading to whatever session
+ * the browser holds is how a script ends up writing to the wrong account.
+ *
+ * ROUTING BETWEEN THE TWO CREDENTIALS IS BY PREFIX. An API key starts with a
+ * fixed marker and a JWT cannot: a JWT is three base64url segments joined by
+ * dots, whose first segment always decodes to a JSON header. No string is
+ * ambiguously both, so this dispatch cannot mistake one for the other.
+ */
+export async function authenticate(request: Request): Promise<Authentication> {
   const bearer = readBearerToken(request);
 
   if (bearer) {
-    return verifySessionToken(bearer);
+    if (looksLikeApiKey(bearer)) {
+      const result = await authenticateApiKey(bearer);
+
+      return result.ok
+        ? {
+            ok: true,
+            principal: {
+              userId: result.key.ownerId,
+              email: result.key.email,
+              credential: "api_key",
+              scope: result.key.scope,
+              apiKeyId: result.key.id,
+            },
+          }
+        : {
+            ok: false,
+            // A key matching no stored hash is indistinguishable from a
+            // fabricated one, so it collapses into the same generic `invalid`
+            // as a malformed JWT. Only `revoked` and `expired`, which require
+            // holding the real secret to reach, keep their specific reason.
+            reason: result.reason === "unknown" ? "invalid" : result.reason,
+          };
+    }
+
+    return fromSessionToken(await verifySessionToken(bearer));
   }
 
   const cookieToken = await readSessionCookie();
 
   if (cookieToken) {
-    return verifySessionToken(cookieToken);
+    return fromSessionToken(await verifySessionToken(cookieToken));
   }
 
-  return null;
+  return { ok: false, reason: "absent" };
 }
 
-export async function requireSession(
-  request: Request,
-): Promise<SessionPayload> {
-  const session = await resolveSession(request);
+function fromSessionToken(payload: SessionPayload | null): Authentication {
+  if (!payload) return { ok: false, reason: "invalid" };
 
-  if (!session) {
-    throw unauthenticated();
+  return {
+    ok: true,
+    principal: {
+      userId: payload.userId,
+      email: payload.email,
+      credential: "session",
+      scope: "READ_WRITE",
+      apiKeyId: null,
+    },
+  };
+}
+
+/**
+ * Turns a failed authentication into the response the caller sees.
+ *
+ * `revoked` and `expired` say so. Reaching either branch requires presenting
+ * the exact 256-bit secret, so the person reading the message already holds
+ * that key and learns nothing from being told it is switched off, while
+ * somebody debugging their own CLI at midnight is saved from guessing.
+ * Everything else collapses to one generic refusal.
+ */
+function toAuthError(reason: Exclude<Authentication, { ok: true }>["reason"]) {
+  switch (reason) {
+    case "revoked":
+      return unauthenticated(
+        "That API key has been revoked. Create a new one in Settings.",
+      );
+    case "expired":
+      return unauthenticated(
+        "That API key has expired. Create a new one in Settings.",
+      );
+    default:
+      return unauthenticated();
+  }
+}
+
+export async function requireSession(request: Request): Promise<Principal> {
+  const result = await authenticate(request);
+
+  if (!result.ok) {
+    throw toAuthError(result.reason);
   }
 
-  return session;
+  return result.principal;
 }
 
 /* ------------------------------------------------------------------ */
@@ -189,18 +303,35 @@ export function route<P = Record<string, never>>(
   };
 }
 
+interface AuthedRouteOptions {
+  /**
+   * Refuse API keys on this route, whatever their scope.
+   *
+   * Reserved for the endpoints that manage credentials. A read-write key that
+   * could mint further keys and revoke existing ones is a credential that can
+   * reissue itself and lock its owner out, which means it can never really be
+   * taken away. Declared here rather than checked inside the handler, for the
+   * same reason the rate limit is: a guard a route can forget to apply is a
+   * guard that will eventually be forgotten.
+   */
+  sessionOnly?: boolean;
+}
+
 /**
  * Wraps a route that requires authentication.
  *
- * The session is resolved before the handler runs, so no handler can forget the
- * check. Tenant isolation is then enforced by every repository call taking the
- * resolved `userId`, rather than by remembering to add a where clause.
+ * THIS IS THE ONE PLACE THE THREE AUTHORISATION QUESTIONS ARE ASKED. Who are
+ * you, may this kind of credential be here at all, and is it allowed to write?
+ * No handler answers them, so no handler can answer them wrongly. Tenant
+ * isolation then follows from every repository call taking the resolved
+ * `userId`, rather than from remembering to add a where clause.
  */
 export function authedRoute<P = Record<string, never>>(
   handler: (
     request: Request,
-    context: RouteContext<P> & { session: SessionPayload },
+    context: RouteContext<P> & { session: Principal },
   ) => Promise<Response>,
+  options: AuthedRouteOptions = {},
 ) {
   return async (
     request: Request,
@@ -208,31 +339,48 @@ export function authedRoute<P = Record<string, never>>(
   ): Promise<Response> => {
     try {
       const session = await requireSession(request);
+      const isWrite = request.method !== "GET" && request.method !== "HEAD";
 
       /**
-       * Writes are limited PER ACCOUNT, not per address, and reads are not
-       * limited at all.
+       * Counted BEFORE the credential and scope checks, so a refused request
+       * still costs budget. The alternative lets a read-only key spin against a
+       * write endpoint forever: every attempt is rejected, but every attempt
+       * has already cost a database lookup to authenticate, and nothing is
+       * keeping score. Same reasoning as the signup limiter counting rejected
+       * attempts.
        *
-       * Per account because the caller has already proved who they are, and an
-       * address is the wrong unit once they have: two colleagues behind one
-       * office IP would share a budget they have no way to see. Reads are
-       * exempt because the dashboard is a read and throttling it would punish
-       * someone for refreshing.
+       * KEYED PER CREDENTIAL, NOT PER ACCOUNT. Per account, one runaway agent
+       * would exhaust the budget its owner needs to use their own dashboard.
+       * Per credential, a misbehaving key throttles only itself, and the cap on
+       * how many keys an account may hold bounds the total.
        *
-       * The ceiling is high enough that no human reaches it. It is here to stop
-       * a runaway script, not to police anyone's use of their own ledger.
+       * Browser reads stay unlimited: the dashboard is a read, and throttling
+       * it would punish somebody for pressing refresh. Machine reads are
+       * counted, because an agent in a loop does not get tired.
        */
-      if (request.method !== "GET" && request.method !== "HEAD") {
-        const result = hit(`write:${session.userId}`, WRITE_LIMIT);
+      const bucket = session.apiKeyId ?? session.userId;
 
-        if (!result.ok) {
-          throw new ApiError({
-            status: 429,
-            code: "RATE_LIMITED",
-            message: "That is a lot of changes at once. Give it a moment.",
-            details: { retryAfterSeconds: result.retryAfter },
-          });
-        }
+      if (isWrite) {
+        enforceBudget(hit(`write:${bucket}`, WRITE_LIMIT));
+      } else if (session.credential === "api_key") {
+        enforceBudget(hit(`read:${bucket}`, API_KEY_READ_LIMIT));
+      }
+
+      if (options.sessionOnly && session.credential === "api_key") {
+        throw sessionRequired();
+      }
+
+      /**
+       * The scope gate, expressed against the HTTP METHOD rather than against a
+       * per-route declaration.
+       *
+       * Deliberate: a route that mutates state and answers to GET would be a
+       * bug on its own, and deriving the check from the method means a new
+       * endpoint is covered the moment it exists. Nobody has to remember to
+       * label it.
+       */
+      if (isWrite && session.scope === "READ_ONLY") {
+        throw insufficientScope();
       }
 
       return await handler(request, { ...context, session });
@@ -240,4 +388,15 @@ export function authedRoute<P = Record<string, never>>(
       return toErrorResponse(error);
     }
   };
+}
+
+function enforceBudget(result: RateLimitResult): void {
+  if (result.ok) return;
+
+  throw new ApiError({
+    status: 429,
+    code: "RATE_LIMITED",
+    message: "That is a lot of requests at once. Give it a moment.",
+    details: { retryAfterSeconds: result.retryAfter },
+  });
 }
