@@ -37,6 +37,11 @@ export function Hero() {
         somebody left on; putting it under the fragments makes the fragments
         look like they are floating above something.
       */}
+      {/*
+        NEITHER PLATE ANIMATES. The copy above staggers in over the light, not
+        with it: the glow is the ground the hero is printed on, and ground that
+        arrives on a timer stops being ground and becomes an effect.
+      */}
       <GradientPlate
         src="/gradients/signal.webp"
         priority
