@@ -32,6 +32,6 @@ beforeEach(async () => {
   const { prisma } = await import("@/server/db/client");
 
   await prisma.$executeRawUnsafe(
-    `TRUNCATE TABLE "payments", "line_items", "orders", "users" RESTART IDENTITY CASCADE`,
+    `TRUNCATE TABLE "payments", "line_items", "orders", "api_keys", "users" RESTART IDENTITY CASCADE`,
   );
 });
