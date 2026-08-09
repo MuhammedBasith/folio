@@ -31,6 +31,7 @@ const PAGES = [
   { name: "orders", path: "/orders", auth: true },
   { name: "orders-overdue", path: "/orders?status=overdue", auth: true },
   { name: "order-new", path: "/orders/new", auth: true },
+  { name: "settings", path: "/settings", auth: true, full: true },
   { name: "not-found", path: "/nope", auth: false },
 ];
 
