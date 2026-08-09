@@ -4,6 +4,11 @@ import type {
   CreateOrderInput,
   RecordPaymentInput,
 } from "@/lib/schemas/order";
+import type {
+  ApiKeyDto,
+  CreateApiKeyInput,
+  CreatedApiKeyResponse,
+} from "@/lib/schemas/api-key";
 
 /**
  * Browser-side API client.
@@ -149,6 +154,28 @@ export const api = {
     }>(`/api/orders/${orderId}/payments`, {
       method: "POST",
       body: JSON.stringify(input),
+    });
+  },
+
+  /**
+   * Mints an API key.
+   *
+   * The response carries the plaintext key, and it is the only response in this
+   * application that ever will. It is held in component state long enough to be
+   * displayed and copied, and deliberately never written to localStorage: a
+   * credential parked there survives the tab, is readable by any script that
+   * gets to run on the page, and would outlive the moment it was needed.
+   */
+  createApiKey(input: CreateApiKeyInput) {
+    return request<CreatedApiKeyResponse>("/api/keys", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  },
+
+  revokeApiKey(id: string) {
+    return request<{ apiKey: ApiKeyDto }>(`/api/keys/${id}`, {
+      method: "DELETE",
     });
   },
 };
