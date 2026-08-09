@@ -11,6 +11,17 @@ import { cn } from "@/lib/utils";
  * it also bands on an 8-bit display. A photograph has grain, drift and slightly
  * wrong edges, which is what makes the light look like light.
  *
+ * THE BLUR EATS THE GRAIN, SO THE GRAIN GOES BACK ON TOP. Sixty-four pixels of
+ * blur is far wider than a grain particle, so by the time the plate reaches the
+ * screen every trace of the texture it was chosen for has been averaged away,
+ * leaving exactly the smooth synthetic ramp the photograph existed to avoid.
+ * `plate-grain` puts it back above the blur and inside the mask, so the light
+ * has tooth again and the ramps dither rather than band.
+ *
+ * That is the only reason the blur sits on its own nested element rather than
+ * on the masked one. Collapse the two and the grain falls back underneath the
+ * blur, which destroys it again.
+ *
  * THE MASK HAS TO FINISH WELL INSIDE THE BOX. This is the whole trick, and
  * getting it wrong produces the two opposite failures I have now seen both of:
  *
@@ -32,6 +43,10 @@ import { cn } from "@/lib/utils";
  * sideways scrolling without creating a scroll container, so a plate is free to
  * bleed down into whatever comes next. That is what makes the light belong to
  * the page rather than to one section of it.
+ *
+ * THE LIGHT DOES NOT ANIMATE. It is the ground the page sits on, and ground
+ * that arrives is set dressing. It is simply there on the first frame, like the
+ * paper colour, and nothing about it asks to be watched.
  *
  * `aria-hidden` and an empty alt throughout: this is atmosphere, and announcing
  * it to a screen reader would be noise.
@@ -84,7 +99,7 @@ export function GradientPlate({
       className={cn("pointer-events-none absolute select-none", className)}
     >
       <div
-        className={cn("relative h-full w-full", blur, opacity)}
+        className={cn("plate-grain relative h-full w-full", opacity)}
         style={{
           maskImage: mask,
           WebkitMaskImage: mask,
@@ -92,14 +107,16 @@ export function GradientPlate({
           WebkitMaskRepeat: "no-repeat",
         }}
       >
-        <Image
-          src={src}
-          alt=""
-          fill
-          priority={priority}
-          sizes="(min-width: 1024px) 60vw, 100vw"
-          className="object-cover"
-        />
+        <div className={cn("absolute inset-0", blur)}>
+          <Image
+            src={src}
+            alt=""
+            fill
+            priority={priority}
+            sizes="(min-width: 1024px) 60vw, 100vw"
+            className="object-cover"
+          />
+        </div>
       </div>
     </div>
   );
