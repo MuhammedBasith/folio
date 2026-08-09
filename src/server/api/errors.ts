@@ -21,6 +21,9 @@ export const API_ERROR_CODES = [
   "ORDER_ALREADY_SETTLED",
   "METHOD_NOT_ALLOWED",
   "RATE_LIMITED",
+  "INSUFFICIENT_SCOPE",
+  "SESSION_REQUIRED",
+  "API_KEY_LIMIT_REACHED",
   "INTERNAL_ERROR",
 ] as const;
 
@@ -100,6 +103,49 @@ export function notFound(entity = "resource"): ApiError {
     // someone else. Distinguishing them would confirm the existence of another
     // tenant's records.
     message: `That ${entity} does not exist, or you do not have access to it.`,
+  });
+}
+
+/**
+ * The caller is who they say they are, but this credential may not do this.
+ *
+ * 403, NOT 404, AND THAT DOES NOT CONTRADICT `notFound` ABOVE. The 404 rule
+ * exists so the API never confirms that another tenant's row exists. This is a
+ * different question: the caller owns the resource, and the refusal is about
+ * the credential they chose to present. It is evaluated BEFORE anything is
+ * looked up, so it is identical for a real id and an invented one and therefore
+ * discloses nothing about what exists.
+ *
+ * Saying which scope was needed is deliberate. The person reading this is
+ * almost always the owner of the key, holding a terminal, wondering why their
+ * script stopped working.
+ */
+export function insufficientScope(): ApiError {
+  return new ApiError({
+    status: 403,
+    code: "INSUFFICIENT_SCOPE",
+    message:
+      "This API key is read only. Recording payments or changing orders needs a key with read and write access.",
+    details: { requiredScope: "READ_WRITE" },
+  });
+}
+
+/**
+ * This endpoint refuses API keys outright, whatever their scope.
+ *
+ * Guards the key management endpoints themselves. Without it, a stolen
+ * read-write key could mint further keys and revoke the ones the owner would
+ * use to lock the attacker out: a credential that can reissue itself is a
+ * credential that cannot be taken away. Managing keys therefore requires the
+ * password-backed session, which is the thing an attacker holding only a key
+ * does not have.
+ */
+export function sessionRequired(): ApiError {
+  return new ApiError({
+    status: 403,
+    code: "SESSION_REQUIRED",
+    message:
+      "API keys cannot manage API keys. Sign in from a browser to create or revoke them.",
   });
 }
 
