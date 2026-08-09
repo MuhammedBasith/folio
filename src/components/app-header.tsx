@@ -111,6 +111,18 @@ export function AppHeader({ email }: { email: string }) {
                 <p className="mt-0.5 truncate text-body-sm text-ink">{email}</p>
               </div>
               <DropdownMenuSeparator />
+              {/*
+                Settings lives in this menu rather than in the header, because
+                the header deliberately has no navigation: the product has one
+                section, and a tab bar with one tab is furniture. An account
+                menu is where anybody already looks for keys and credentials.
+              */}
+              <DropdownMenuItem asChild className="text-body-sm">
+                <Link href="/settings">
+                  <KeyIcon />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={handleSignOut}
                 disabled={signingOut}
@@ -139,6 +151,33 @@ export function AppHeader({ email }: { email: string }) {
  * The bracket is deliberately open on the right so the arrow reads as passing
  * through a gap rather than colliding with a wall.
  */
+/**
+ * A key, drawn at the same 1.5 stroke as the sign-out glyph beside it.
+ *
+ * The icon set's version has a toothed bit and a ring with a hole, which at
+ * 14px collapses into a smudge. This is a circle, a shaft and two teeth: the
+ * three strokes that make a key readable at this size and nothing else.
+ */
+function KeyIcon() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.5}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="size-3.5"
+    >
+      <circle cx="8" cy="8" r="3.5" />
+      <path d="m10.5 10.5 8 8" />
+      <path d="m16 16-2 2" />
+      <path d="m18.5 18.5-1.5 1.5" />
+    </svg>
+  );
+}
+
 function SignOutIcon() {
   return (
     <svg
