@@ -30,9 +30,88 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  orders Order[]
+  orders  Order[]
+  apiKeys ApiKey[]
 
   @@map("users")
+}
+
+// What a key is allowed to do.
+//
+// TWO TIERS, NOT A SCOPE ARRAY. A list of scope strings is the conventional
+// shape and it is the wrong one here, because this product has exactly two
+// capability levels: read the ledger, and change it. An array would add subset
+// checks, an empty-array case, and unknown-string handling to every request, in
+// exchange for expressing a distinction that does not exist. A new tier is one
+// more enum value and a migration, which is cheap and, unlike a free-form array,
+// cannot be got wrong at a call site.
+//
+// READ_WRITE includes reading. There is no write-only key: a caller that can
+// record a payment can already see the balance it was recorded against.
+enum ApiKeyScope {
+  READ_ONLY
+  READ_WRITE
+
+  @@map("api_key_scope")
+}
+
+// A long-lived credential for programmatic callers: the CLI, the MCP endpoint,
+// a script. Sessions are for people in browsers and expire in seven days; this
+// is for machines, so it does not expire on its own and can be revoked
+// individually without disturbing anything else the account is doing.
+model ApiKey {
+  id String @id @default(cuid())
+
+  // SHA-256 of the presented key, hex encoded. THE KEY ITSELF IS NEVER STORED,
+  // anywhere, in any form. It is shown once at creation and is unrecoverable
+  // afterwards, including to whoever runs the database.
+  //
+  // Unique, so verification is one B-tree probe on this column rather than a
+  // scan plus a comparison in application code. That also means there is no
+  // secret comparison happening in JavaScript for a timing attack to observe.
+  //
+  // SHA-256 rather than bcrypt, deliberately. bcrypt's cost factor exists to
+  // make guessing LOW-ENTROPY human passwords slow. This value is 32 bytes of
+  // CSPRNG output, so there is no dictionary and no guessing: an attacker
+  // holding this column has nothing to attack. Using bcrypt here would add
+  // ~250ms to every single API call and buy nothing.
+  hash String @unique
+
+  // Last four characters of the key, so the settings table can tell two keys
+  // apart. Four base64url characters is 24 bits of a 256-bit secret; the
+  // remaining 232 bits are still far beyond brute force.
+  last4 String
+
+  // What the person called it: "Claude Code on my laptop". Never used for
+  // lookup, only for recognising a row at revoke time.
+  name String
+
+  scope ApiKeyScope
+
+  // Written at most once a minute by the verifier. This is the field that tells
+  // an owner a key they forgot about is still being used, which is the first
+  // sign of a leak, and the field that makes "revoke everything I do not
+  // recognise" a decision someone can actually make.
+  lastUsedAt DateTime?
+
+  // Null means it does not expire. Optional rather than mandatory because a key
+  // that silently stops working mid-automation is its own kind of failure; the
+  // UI offers expiry and defaults to setting one.
+  expiresAt DateTime?
+
+  // SOFT revocation. The row is kept so that `lastUsedAt` on a revoked key
+  // remains readable evidence after an incident. A hard delete destroys exactly
+  // the record you want during the investigation that follows.
+  revokedAt DateTime?
+
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // Matches the only listing query there is: this owner's keys, newest first.
+  @@index([ownerId, createdAt])
+  @@map("api_keys")
 }
 
 model Order {
