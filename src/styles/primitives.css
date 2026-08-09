@@ -109,12 +109,32 @@
   --duration-reveal: 900ms;
 
   /**
-   * Film grain.
+   * Film grain. ONE TEXTURE, TWO INKS.
    *
-   * One tile, referenced by every surface that wants texture. Inline SVG so it
-   * costs no request, and `stitchTiles` so the 220px tile repeats without a
-   * visible seam. It is what stops a large flat field of colour reading as a
-   * screenshot of a colour picker.
+   * Inline SVG so it costs no request, and `stitchTiles` so the 220px tile
+   * repeats without a visible seam. It is what stops a large flat field of
+   * colour reading as a screenshot of a colour picker.
+   *
+   * Both tiles are the same turbulence at the same frequency; only the ink
+   * differs, because a grain tile can only ever push in one direction and which
+   * direction is right depends on the ground.
+   *
+   *   - `--noise-tile` is black with noise in its ALPHA, and is composited with
+   *     `multiply`. Black darkens paper.
+   *   - `--noise-tile-inverse` is white with the same alpha noise, composited
+   *     with `screen`. White lightens charcoal.
+   *
+   * THE SECOND ONE IS NOT AN EXTRA, IT IS THE MISSING HALF. `tokens.css` has
+   * always said the grain "has to lighten" on a dark ground and has always
+   * switched the blend mode to `screen` to do it — but `screen` against pure
+   * black is the identity function (1 - (1 - base)(1 - 0) = base), so the dark
+   * theme was compositing a tile that mathematically could not change a single
+   * pixel. Dark mode had no grain at all. The blend mode was right; there was
+   * simply nothing for it to blend.
+   *
+   * The semantic layer picks between them as `--noise-image`; nothing outside
+   * `tokens.css` should name either tile directly.
    */
   --noise-tile: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  --noise-tile-inverse: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
