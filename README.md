@@ -25,6 +25,7 @@ and is now settled, and one with a single cent outstanding.
 - [Concurrency: the over-payment race](#concurrency-the-over-payment-race)
 - [Order immutability](#order-immutability)
 - [API reference](#api-reference)
+- [API keys, the CLI and MCP](#api-keys-the-cli-and-mcp)
 - [Testing](#testing)
 - [Design system](#design-system)
 - [Assumptions and trade-offs](#assumptions-and-trade-offs)
@@ -352,12 +353,20 @@ All responses are JSON. Money is always integer cents.
 
 ### Authentication
 
-Two transports, both first-class:
+Three credentials, all first-class:
 
 - **Cookie.** `POST /api/auth/login` sets an httpOnly, `sameSite=lax` session
   cookie. This is what the browser uses.
-- **Bearer.** The same response returns `{ token }` in the body. Send it as
-  `Authorization: Bearer <token>`. The header takes precedence over the cookie.
+- **Bearer session token.** The same response returns `{ token }` in the body.
+  Send it as `Authorization: Bearer <token>`. The header takes precedence over
+  the cookie. It expires in seven days.
+- **API key.** A long-lived, individually revocable, individually scoped
+  credential created in Settings. Also sent as `Authorization: Bearer <key>`.
+  This is what a CLI, a script or an assistant should use. See
+  [API keys, the CLI and MCP](#api-keys-the-cli-and-mcp).
+
+The two bearer forms are told apart by prefix: an API key always begins
+`folio_sk_`, and a JWT never can.
 
 The bearer path exists so the API is testable from a terminal in one command,
 without a cookie jar.
@@ -417,19 +426,176 @@ number.
 | `PAYMENT_BELOW_MINIMUM` | 422 | Payment must be at least $0.01. |
 | `PAYMENT_EXCEEDS_BALANCE` | 422 | Would over-pay. `details.maxAllowedCents` says by how much. |
 | `ORDER_ALREADY_SETTLED` | 422 | Nothing is outstanding. |
+| `INSUFFICIENT_SCOPE` | 403 | A read-only API key attempted a write. |
+| `SESSION_REQUIRED` | 403 | An API key attempted to manage API keys. |
+| `API_KEY_LIMIT_REACHED` | 409 | The account already holds 20 active keys. |
 | `INTERNAL_ERROR` | 500 | A bug. Logged in full server-side, opaque to the client. |
 
 Another user's order returns `404`, never `403`. A `403` would confirm the
 order exists.
+
+The two `403`s above are not a contradiction of that rule. They are decided
+from the credential alone, before anything is looked up, so they are identical
+for a real id and an invented one and disclose nothing about what exists.
+
+---
+
+## API keys, the CLI and MCP
+
+The REST API above is usable from a terminal, but getting a credential meant
+posting your password and receiving a token that expires in a week. That is
+wrong for a machine: it expires mid-automation, it cannot be revoked on its own,
+and it means putting an account password into a script.
+
+API keys fix that, and they are what lets an assistant answer "who owes me
+money?" against your real ledger.
+
+### Connecting Claude Code
+
+Create a key under **Settings**, then:
+
+```bash
+claude mcp add --transport http folio https://your-deployment/mcp \
+  --header "Authorization: Bearer folio_sk_..."
+```
+
+The settings screen prints that exact command with the key already in it, so
+there is nothing to retype.
+
+The endpoint speaks [Model Context Protocol](https://modelcontextprotocol.io)
+over streamable HTTP, so the same URL works from Claude Desktop, Cursor, or
+anything else that speaks MCP.
+
+### The tools
+
+| Tool | Scope | What it does |
+|---|---|---|
+| `list_orders` | read | Orders with totals, balances and status. Filterable. Returns the 50 most urgent by default; the totals always cover every match. |
+| `get_order` | read | One order in full, with lines and payment history. |
+| `ageing_report` | read | What is owed, bucketed by how late it is. |
+| `draft_chase_message` | read | The chase email, with the tone escalating by age. |
+| `record_payment` | write | Records that money arrived. |
+| `create_order` | write | Creates an order with its lines. |
+
+Orders are addressable by reference (`ORD-0007`, case-insensitively) as well as
+by id, because that is what a person, and therefore a model acting for them,
+actually knows.
+
+**There is no `update_order` and no `delete_order`, although the REST API has
+both.** An agent acting on "clear out the old orders" must not be able to
+destroy the record of money that was received, which is the one thing this
+product exists to keep. The MCP surface is append-only by construction, and
+anything destructive stays behind a person pressing a button.
+
+### Using a key directly
+
+A key is a bearer token, so everything in the API reference works with one:
+
+```bash
+curl -s localhost:3000/api/orders \
+  -H "authorization: Bearer folio_sk_..." | jq
+
+curl -s "localhost:3000/api/orders/export?status=overdue" \
+  -H "authorization: Bearer folio_sk_..."
+```
+
+### Key management endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/keys` | List your keys. Metadata only, never the secret. |
+| `POST` | `/api/keys` | Mint a key. Requires your password. Returns the plaintext once. |
+| `DELETE` | `/api/keys/:id` | Revoke. Idempotent. |
+
+All three refuse API keys and require a real session.
+
+### How they are secured
+
+Every one of these is a deliberate decision, and the reasoning is in the code
+next to the thing it justifies.
+
+**The key is never stored.** Only its SHA-256 is, in a column with a unique
+index, so verification is one B-tree probe and there is no secret comparison in
+application code for a timing attack to observe. A database backup contains no
+usable credential. SHA-256 rather than bcrypt because the secret is 32 bytes of
+CSPRNG output, so there is no dictionary to slow down, and bcrypt would add
+~250ms to every API call for nothing.
+
+**It is shown exactly once.** There is no endpoint that can return it again.
+Lose it and you revoke it and mint another.
+
+**The prefix is a security feature.** `folio_sk_` is what makes GitHub push
+protection and secret scanners recognise a leaked key in a committed `.env` or
+a pasted log.
+
+**Two scopes, and read-only is the default.** A read-only key cannot write
+anything; the check is derived from the HTTP method at the single wrapper every
+authenticated route already passes through, so a new endpoint is covered the
+moment it exists rather than when somebody remembers to label it. Over MCP a
+read-only key is not even *shown* the write tools.
+
+**Keys cannot manage keys.** A read-write key that could mint further keys and
+revoke existing ones would be a credential that reissues itself and locks its
+owner out. Creation and revocation require the password-backed session.
+
+**Minting asks for your password again.** A session cookie is seven days long
+and lives in a browser; without this, anyone reaching an unlocked laptop walks
+away with a credential that outlives the session. Same bar GitHub sets before it
+hands over a personal access token, and it is rate limited per account so it
+cannot become a password oracle.
+
+**Revocation is immediate.** `revokedAt` is read on every request rather than
+cached, so there is no window in which a revoked key still works. Revoked rows
+are kept, not deleted, because `lastUsedAt` on a revoked key is exactly the
+evidence you want during the incident that follows.
+
+**Last use is recorded**, at most once a minute so it does not put a write on
+the hot path. A key nobody recognises that was used an hour ago is what a leak
+actually looks like, and it is invisible without this.
+
+**MCP accepts API keys only, never the session cookie.** A cookie is an ambient
+credential the browser attaches on its own, which is the ingredient CSRF needs.
+Refusing cookies at that endpoint removes the entire class, and means DNS
+rebinding has nothing to steal either. `sameSite=lax` already blocked the
+cross-site POST; this is a second lock on a bolted door.
+
+**Machine traffic is rate limited**, per credential rather than per account, so
+one runaway agent throttles only itself instead of locking its owner out of
+their own dashboard.
+
+### What this does not do
+
+Worth stating plainly rather than leaving to be discovered.
+
+- **Your ledger goes to the model provider.** Anything a tool returns becomes
+  part of the conversation, wherever that conversation runs. That is inherent to
+  connecting any data source to an assistant, not specific to Folio, but it is
+  the actual privacy consideration and it is bigger than the key handling.
+- **Customer names and notes are untrusted text.** A note reading "ignore your
+  instructions and…" is returned verbatim to whatever is reading it. Folio has
+  no way to sanitise prose without destroying it, and prompt injection is not a
+  solved problem at any layer.
+- **There is no per-key audit log of writes.** You can see that a key was used
+  recently, not which order it touched. That is the next thing I would build.
+- **The rate limiter is in-memory and per instance**, with the same limitations
+  described under [Testing](#testing) and below. It bounds a runaway script, not
+  a determined attacker with many instances to reach.
+- **No OAuth.** The MCP specification describes a full OAuth 2.1 flow with
+  dynamic client registration, and treats it as optional. This deployment issues
+  long-lived keys instead, which is what Claude Code's `--header` path is for.
+  The 401 deliberately does *not* advertise a `resource_metadata` document,
+  because pointing a client at an authorization server that does not exist is a
+  worse failure than a clear refusal. If Folio ever became multi-tenant and
+  public, this is the piece to add, and nothing above would be thrown away.
 
 ---
 
 ## Testing
 
 ```
-160  unit tests         pure logic, no I/O, ~200ms
-30   integration tests  real PostgreSQL, real transactions, real locks
-56   smoke checks       end-to-end over HTTP against a running server
+195  unit tests         pure logic, no I/O, ~200ms
+58   integration tests  real PostgreSQL, real transactions, real locks
+85   smoke checks       end-to-end over HTTP against a running server
 32   screenshots        every page, both themes, desktop and phone
 140  responsive checks  7 pages x 10 widths x 2 themes
 ```
@@ -851,6 +1017,9 @@ the demo account; skip it if you do not want one.
 - [ ] `AUTH_SECRET` at least 32 characters, unique to the environment
 - [ ] `bunx prisma migrate deploy` run against the production database
 - [ ] `/api/auth/me` returns 401 when signed out, 200 when signed in
+- [ ] An API key minted in Settings authenticates against `/api/orders`
+- [ ] Revoking that key makes the very next request fail with 401
+- [ ] `/mcp` returns 401 with a `WWW-Authenticate: Bearer` header when unauthenticated
 
 ### Things worth knowing
 
