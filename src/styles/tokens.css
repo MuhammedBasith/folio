@@ -166,9 +166,26 @@
   --relief-soft: inset 0 1px 0 oklch(1 0 0 / 0.7);
 
   /* Texture ------------------------------------------------------------ */
-  /* Grain darkens on paper. On a dark ground it has to lighten instead. */
+  /* Grain darkens on paper. On a dark ground it has to lighten instead, which
+     takes the white tile as well as the blend mode; see `primitives.css`. */
+  --noise-image: var(--noise-tile);
   --noise-blend: multiply;
   --noise-opacity: 0.055;
+
+  /**
+   * Grain over the gradient plates, on top of the site-wide dose above.
+   *
+   * The plates are photographs chosen for the grain in them, and then blurred
+   * by 64px, which destroys every particle of it. What is left is a
+   * mathematically smooth field: the exact thing the photographs were there to
+   * avoid, plus visible banding on an 8-bit display. This puts the texture back
+   * ABOVE the blur, so the light has tooth again and the ramps dither.
+   *
+   * Higher than `--noise-opacity` because it is confined to the light and
+   * multiplied down by the plate's own opacity before it reaches the page. This
+   * is the number to turn if the plates want more or less bite.
+   */
+  --plate-grain: 0.2;
 
   /* Motion ------------------------------------------------------------- */
   /**
@@ -301,6 +318,12 @@
   --relief-raised: inset 0 -1px 0 oklch(0 0 0 / 0.14);
   --relief-soft: inset 0 1px 0 oklch(1 0 0 / 0.06);
 
+  --noise-image: var(--noise-tile-inverse);
   --noise-blend: screen;
   --noise-opacity: 0.035;
+
+  /* Lower than on paper. The plates are already dimmer here (the light is
+     competing with charcoal rather than with white), so the same figure would
+     read as dirt on the glow rather than as grain in it. */
+  --plate-grain: 0.16;
 }
