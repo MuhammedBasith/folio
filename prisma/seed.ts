@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { createHash, randomBytes } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
@@ -17,6 +18,24 @@ import bcrypt from "bcryptjs";
 
 const DEMO_EMAIL = "demo@folio.app";
 const DEMO_PASSWORD = "demo1234";
+
+/**
+ * Storable material for a demo key, with the plaintext thrown away.
+ *
+ * Mirrors `generateApiKey`, rather than importing it, because this script
+ * reaches the generated Prisma client by relative path and deliberately keeps
+ * clear of the `@/` alias and the application's server modules. The only shape
+ * that matters here is "a hash and a last4 that look like the real thing".
+ */
+function keyMaterial(): { hash: string; last4: string } {
+  const secret = randomBytes(32).toString("base64url");
+  const key = `folio_sk_${secret}`;
+
+  return {
+    hash: createHash("sha256").update(key, "utf8").digest("hex"),
+    last4: key.slice(-4),
+  };
+}
 
 function daysFromNow(days: number): string {
   const date = new Date();
@@ -166,6 +185,46 @@ async function main() {
       },
     });
   }
+
+  /**
+   * A few API keys, so the settings screen has something to show.
+   *
+   * THE PLAINTEXT IS DISCARDED, deliberately and unavoidably: only the SHA-256
+   * is stored, so these keys exist as rows nobody can authenticate with. That
+   * is the point rather than a shortcoming. It demonstrates the three lifecycle
+   * states the screen renders, and seeding a WORKING credential into every
+   * deployment that runs this script would be a genuine vulnerability.
+   */
+  const now = new Date();
+
+  await prisma.apiKey.createMany({
+    data: [
+      {
+        ownerId: user.id,
+        ...keyMaterial(),
+        name: "Claude Code on my laptop",
+        scope: "READ_ONLY",
+        lastUsedAt: new Date(now.getTime() - 40 * 60_000),
+        expiresAt: new Date(now.getTime() + 90 * 86_400_000),
+      },
+      {
+        ownerId: user.id,
+        ...keyMaterial(),
+        name: "Nightly reconciliation script",
+        scope: "READ_WRITE",
+        lastUsedAt: new Date(now.getTime() - 9 * 3_600_000),
+        expiresAt: null,
+      },
+      {
+        ownerId: user.id,
+        ...keyMaterial(),
+        name: "Old laptop",
+        scope: "READ_ONLY",
+        lastUsedAt: new Date(now.getTime() - 120 * 86_400_000),
+        revokedAt: new Date(now.getTime() - 30 * 86_400_000),
+      },
+    ],
+  });
 
   console.log(`Seeded ${orders.length} orders for ${DEMO_EMAIL}`);
   console.log("");
