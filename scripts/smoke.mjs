@@ -87,6 +87,42 @@ async function call(path, { method = "GET", body, token, client } = {}) {
   return { status: response.status, json, text, headers: response.headers };
 }
 
+/**
+ * One JSON-RPC call against the MCP endpoint.
+ *
+ * Streamable HTTP answers with Server-Sent Events when the client says it can
+ * take them, which is what a real MCP client does, so this asks for both and
+ * unwraps whichever came back. Parsing the SSE framing here rather than forcing
+ * a plain JSON response keeps this on the same code path Claude Code uses.
+ */
+async function mcp(key, body) {
+  const response = await fetch(`${BASE}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      "x-forwarded-for": RUN_ID,
+      authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const text = await response.text();
+
+  const payload = text.startsWith("event:")
+    ? text
+        .split("\n")
+        .find((line) => line.startsWith("data: "))
+        ?.slice("data: ".length)
+    : text;
+
+  try {
+    return payload ? JSON.parse(payload) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 async function main() {
   console.log(`Smoke testing ${BASE}`);
 
@@ -411,6 +447,263 @@ async function main() {
     inlineScripts.find((body) => body.includes("undefined"))?.slice(0, 80));
   check("the document opens with an explicit theme",
     /<html[^>]+data-theme="(light|dark)"/.test(shell.text));
+
+  /* ---- API keys and MCP ---- */
+  //
+  // The boundaries here are the ones worth proving over real HTTP, because
+  // every one of them is enforced by routing and middleware rather than by the
+  // repository layer the integration suite exercises.
+  section("API keys");
+
+  const noPassword = await call("/api/keys", {
+    method: "POST",
+    token,
+    body: { name: "no password", scope: "READ_ONLY", expiresInDays: 30 },
+  });
+  check("minting without a password is rejected", noPassword.status === 422,
+    `got ${noPassword.status}`);
+
+  const wrongPassword = await call("/api/keys", {
+    method: "POST",
+    token,
+    body: {
+      name: "wrong password",
+      scope: "READ_ONLY",
+      expiresInDays: 30,
+      password: "not-the-password",
+    },
+  });
+  check("minting with the wrong password is rejected",
+    wrongPassword.status === 401 &&
+      wrongPassword.json?.error?.code === "INVALID_CREDENTIALS",
+    `got ${wrongPassword.status} ${wrongPassword.json?.error?.code}`);
+
+  const minted = await call("/api/keys", {
+    method: "POST",
+    token,
+    body: {
+      name: "smoke read-only",
+      scope: "READ_ONLY",
+      expiresInDays: 30,
+      password,
+    },
+  });
+  check("minting with the correct password returns 201", minted.status === 201,
+    `got ${minted.status}`);
+
+  const apiKey = minted.json?.key;
+
+  check("the minted key has the documented format",
+    /^folio_sk_[A-Za-z0-9_-]{43}$/.test(apiKey ?? ""),
+    `got ${apiKey?.slice(0, 12)}...`);
+  check("the response carries no hash", !("hash" in (minted.json?.apiKey ?? {})));
+
+  const listed = await call("/api/keys", { token });
+  check("listing keys never returns the secret again",
+    listed.status === 200 &&
+      !JSON.stringify(listed.json).includes(apiKey?.slice(9) ?? "impossible"),
+    "the plaintext key appeared in a later response");
+
+  const withKey = await call("/api/orders", { token: apiKey });
+  check("the key authenticates against the REST API", withKey.status === 200,
+    `got ${withKey.status}`);
+
+  const readOnlyWrite = await call("/api/orders", {
+    method: "POST",
+    token: apiKey,
+    body: {
+      customer: "Should never exist",
+      dueDate: "2027-01-01",
+      lineItems: [{ description: "x", quantity: 1, unitPriceCents: 100 }],
+    },
+  });
+  check("a read-only key cannot write",
+    readOnlyWrite.status === 403 &&
+      readOnlyWrite.json?.error?.code === "INSUFFICIENT_SCOPE",
+    `got ${readOnlyWrite.status} ${readOnlyWrite.json?.error?.code}`);
+
+  const keyManagingKeys = await call("/api/keys", { token: apiKey });
+  check("an API key cannot manage API keys",
+    keyManagingKeys.status === 403 &&
+      keyManagingKeys.json?.error?.code === "SESSION_REQUIRED",
+    `got ${keyManagingKeys.status} ${keyManagingKeys.json?.error?.code}`);
+
+  section("MCP");
+
+  const mcpAnon = await fetch(`${BASE}/mcp`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": RUN_ID },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+  });
+  check("MCP refuses an unauthenticated call", mcpAnon.status === 401,
+    `got ${mcpAnon.status}`);
+
+  const challenge = mcpAnon.headers.get("www-authenticate") ?? "";
+  check("MCP sends a Bearer challenge", challenge.startsWith("Bearer "),
+    challenge);
+  check("the challenge is a well-formed quoted-string",
+    // Exactly the auth-params it declares, no stray quotes inside the values.
+    /^Bearer error="[^"]*", error_description="[^"]*"$/.test(challenge),
+    challenge);
+
+  const cookieOnly = await fetch(`${BASE}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": RUN_ID,
+      cookie: `folio_session=${token}`,
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+  });
+  check("MCP ignores the session cookie, so CSRF has nothing to ride on",
+    cookieOnly.status === 401, `got ${cookieOnly.status}`);
+
+  const mcpTools = await mcp(apiKey, { jsonrpc: "2.0", id: 2, method: "tools/list" });
+  const toolNames = (mcpTools?.result?.tools ?? []).map((t) => t.name).sort();
+
+  check("MCP serves tools to a valid key", toolNames.length > 0,
+    JSON.stringify(mcpTools).slice(0, 200));
+  check("a read-only key is offered only read tools",
+    toolNames.length > 0 &&
+      !toolNames.includes("record_payment") &&
+      !toolNames.includes("create_order"),
+    toolNames.join(","));
+  check("a read-only key can still read",
+    toolNames.includes("list_orders") && toolNames.includes("ageing_report"),
+    toolNames.join(","));
+
+  const listViaMcp = await mcp(apiKey, {
+    jsonrpc: "2.0",
+    id: 3,
+    method: "tools/call",
+    params: { name: "list_orders", arguments: {} },
+  });
+  check("an MCP read returns the ledger",
+    typeof listViaMcp?.result?.content?.[0]?.text === "string",
+    JSON.stringify(listViaMcp).slice(0, 200));
+
+  /* ---- MCP writes ---- */
+
+  const rwMint = await call("/api/keys", {
+    method: "POST",
+    token,
+    body: {
+      name: "smoke read-write",
+      scope: "READ_WRITE",
+      expiresInDays: 30,
+      password,
+    },
+  });
+  const rwKey = rwMint.json?.key;
+
+  const rwTools = await mcp(rwKey, { jsonrpc: "2.0", id: 4, method: "tools/list" });
+  const rwNames = (rwTools?.result?.tools ?? []).map((t) => t.name).sort();
+
+  check("a read-write key is offered the write tools",
+    rwNames.includes("record_payment") && rwNames.includes("create_order"),
+    rwNames.join(","));
+  check("no tool can edit or delete an order",
+    !rwNames.some((n) => /update|delete|remove/.test(n)),
+    rwNames.join(","));
+
+  /**
+   * The regression that matters most on this endpoint.
+   *
+   * Every field below is inside its own limit; only the product of them is not.
+   * The MCP tool once advertised a schema rebuilt field by field, which dropped
+   * the object-level cap on the aggregate total, and an order like this
+   * committed a row whose total exceeded `Number.MAX_SAFE_INTEGER`. Every
+   * subsequent read of the account then threw, with no way back through the
+   * product. It must be a validation failure, not a 500, and the account must
+   * still be readable afterwards.
+   */
+  const overflow = await mcp(rwKey, {
+    jsonrpc: "2.0",
+    id: 5,
+    method: "tools/call",
+    params: {
+      name: "create_order",
+      arguments: {
+        customer: "Overflow",
+        dueDate: "2027-01-01",
+        lineItems: Array.from({ length: 100 }, (_, i) => ({
+          description: `L${i}`,
+          quantity: 100_000,
+          unitPriceCents: 999_999_999,
+        })),
+      },
+    },
+  });
+
+  const overflowText = overflow?.result?.content?.[0]?.text ?? "";
+
+  check("an order that would overflow safe integers is refused",
+    overflow?.result?.isError === true &&
+      overflowText.includes("VALIDATION_FAILED"),
+    overflowText.slice(0, 200));
+  check("the refusal says which field was wrong",
+    /order total cannot exceed/i.test(overflowText),
+    overflowText.slice(0, 200));
+
+  const stillReadable = await call("/api/orders", { token: rwKey });
+  check("the account is still readable after the refusal",
+    stillReadable.status === 200, `got ${stillReadable.status}`);
+
+  const written = await mcp(rwKey, {
+    jsonrpc: "2.0",
+    id: 6,
+    method: "tools/call",
+    params: {
+      name: "create_order",
+      arguments: {
+        customer: "MCP Customer",
+        dueDate: "2027-01-01",
+        lineItems: [
+          { description: "Consulting", quantity: 2, unitPriceCents: 50_000 },
+        ],
+      },
+    },
+  });
+  check("a legitimate order is created over MCP",
+    /ORD-\d{4}/.test(written?.result?.content?.[0]?.text ?? ""),
+    JSON.stringify(written).slice(0, 200));
+
+  /* ---- revocation ---- */
+
+  const revoked = await call(`/api/keys/${minted.json?.apiKey?.id}`, {
+    method: "DELETE",
+    token,
+  });
+  check("revoking returns 200", revoked.status === 200, `got ${revoked.status}`);
+  check("the revoked key reports its new status",
+    revoked.json?.apiKey?.status === "revoked",
+    JSON.stringify(revoked.json));
+
+  const afterRevoke = await call("/api/orders", { token: apiKey });
+  check("a revoked key stops working immediately", afterRevoke.status === 401,
+    `got ${afterRevoke.status}`);
+  check("and is told why, because only its holder can reach that message",
+    /revoked/i.test(afterRevoke.json?.error?.message ?? ""),
+    afterRevoke.json?.error?.message);
+
+  const mcpAfterRevoke = await fetch(`${BASE}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": RUN_ID,
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+  });
+  check("a revoked key stops working on MCP too", mcpAfterRevoke.status === 401,
+    `got ${mcpAfterRevoke.status}`);
+
+  const strangerRevoke = await call("/api/keys/does-not-exist", {
+    method: "DELETE",
+    token,
+  });
+  check("revoking an unknown key is a 404, never a 403",
+    strangerRevoke.status === 404, `got ${strangerRevoke.status}`);
 
   /* ---- rate limiting ---- */
   //
