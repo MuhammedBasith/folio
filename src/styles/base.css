@@ -89,6 +89,11 @@
    * darkening noise tile is invisible on a dark ground and a lightening one is
    * invisible on a light one.
    *
+   * BOTH HALVES OF THAT SENTENCE NOW HOLD. The blend mode has always switched;
+   * the tile did not, so the dark theme was screening pure black, which cannot
+   * change a pixel. `--noise-image` carries the matching ink, so charcoal
+   * finally gets the grain this comment has always claimed for it.
+   *
    * This is the difference between a large field of flat colour reading as a
    * printed surface and reading as a screenshot of a colour picker. It is at
    * 5.5% opacity: felt, not seen.
@@ -101,7 +106,7 @@
     pointer-events: none;
     opacity: var(--noise-opacity);
     mix-blend-mode: var(--noise-blend);
-    background-image: var(--noise-tile);
+    background-image: var(--noise-image);
     background-size: 220px 220px;
   }
 
@@ -278,6 +283,41 @@
   [data-visible="true"] & {
     animation: rise-in var(--duration-slow) var(--ease-out-quint) forwards;
     animation-delay: calc(var(--stagger-index, 0) * 55ms);
+  }
+}
+
+/**
+ * Grain over a gradient plate.
+ *
+ * A pseudo-element rather than a node, for the same reason the site-wide grain
+ * is one: nothing should have to render a div to have texture. It sits ABOVE
+ * the blurred photograph and below nothing, which is the only position that
+ * works — put it under the blur and the blur eats it, which is precisely how
+ * the plates lost the grain they were chosen for.
+ *
+ * `isolation: isolate` is load-bearing, not boilerplate. `mix-blend-mode`
+ * blends with whatever is behind it in the nearest stacking context, and if the
+ * plate is ever given a full-strength opacity there is no stacking context
+ * between this and the page — the grain would then multiply against the
+ * landing page itself and spill outside the light. Isolating pins the blend to
+ * the photograph, which is the only thing it should ever touch.
+ *
+ * Same tile and same blend as the page, one dose stronger. Two different grain
+ * structures on one screen read as two layers of film; one structure at two
+ * strengths reads as one photograph with light in it.
+ */
+@utility plate-grain {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--noise-image);
+    background-size: 220px 220px;
+    mix-blend-mode: var(--noise-blend);
+    opacity: var(--plate-grain);
   }
 }
 
